@@ -403,9 +403,408 @@ mongo mastera:10001/admin
 
 ### 完成集群的自动部署
 
+
+
+
+
 ## 使用 MongoDB
 
+### mongo shell
+
+>如果你不带任何参数运行 mongo ， mongo shell将尝试连接运行在``localhost``上端口号为``27017``的MongoDB实例。
+
+```shell[root@mastera db]# mongo
+MongoDB shell version v3.4.1
+connecting to: mongodb://127.0.0.1:27017
+MongoDB server version: 3.4.1
+```
+
+>输入``db``，显示你当前正在使用的数据库：
+
+```shell
+> db
+test
+```
+
+此操作将返回默认数据库``test``
+
+
+>使用``show dbs``列出所有可用的数据库
+
+```shell
+> show dbs
+admin  0.000GB
+local  0.000GB
+```
+
+>要切换数据库，使用``use <db>``，如下例所示：
+
+```shell
+> use local
+switched to db local
+> db
+local
+> use admin
+switched to db admin
+> db
+admin
+> use test
+switched to db test
+> db
+test
+```
+
+#### sql与mongodb术语对比
+
+|SQL术语/概念|	MongoDB术语/概念|	解释/说明|
+|:--|:--|:--|
+|database|	database|	数据库|
+|table	|collection	|数据库表/集合|
+|row	|document	|数据记录行/文档|
+|column	|field	|数据字段/域|
+|index	|index	|索引|
+|table joins|	 |	表连接,MongoDB不支持|
+|primary key|	primary key|	主键,MongoDB自动将_id字段设置为主键|
+
+#### 数据库命名规范
+
+系统已存在的三个数据库：
+
+* Admin 数据库：一个权限数据库，如果创建用户的时候将该用户添加到admin 数据库中，那么该用户就自动继承了所有数据库的权限。
+* Local 数据库：这个数据库永远不会被负责，可以用来存储本地单台服务器的任意集合。
+* Config 数据库：当MongoDB 使用分片模式时，config 数据库在内部使用，用于保存分片的信息。
+
+数据库也通过名字来标识。数据库名可以是满足以下条件的任意UTF-8字符串:
+
+* 不能是空字符串（"")。
+* 不得含有' '（空格)、.、$、/、\和\0 (空宇符)。
+* 应全部小写。
+* 最多64字节。
+
+
+#### 文档命名规范
+
+文档是一个键值(key-value)对(即BSON)。MongoDB 的文档不需要设置相同的字段，并且相同的字段不需要相同的数据类型，这与关系型数据库有很大的区别，也是 MongoDB 非常突出的特点。
+
+一个简单的文档例子如下：`{"site":"www.uplooking.com", "name":"尚观科技"}`
+
+需要注意的是：
+
+1. 文档中的键/值对是有序的。
+2. 文档中的值不仅可以是在双引号里面的字符串，还可以是其他几种数据类型（甚至可以是整个嵌入的文档)。
+3. MongoDB区分类型和大小写。
+4. MongoDB的文档不能有重复的键。
+5. 文档的键是字符串。除了少数例外情况，键可以使用任意UTF-8字符。
+
+**文档键命名规范**
+
+1. 键不能含有\0 (空字符)。这个字符用来表示键的结尾。
+2. "."和"$"有特别的意义，只有在特定环境下才能使用。
+3. 以下划线"_"开头的键是保留的(不是严格要求的)。
+
+#### 集合命名规范
+
+集合就是 MongoDB 文档组，类似于 RDBMS （关系数据库管理系统：Relational Database Management System)中的表格。
+
+集合存在于数据库中，集合没有固定的结构，这意味着你在对集合可以插入不同格式和类型的数据，但通常情况下我们插入集合的数据都会有一定的关联性。
+
+比如，我们可以将以下不同数据结构的文档插入到集合中：
+
+```shell
+{"site":"www.baidu.com"}
+{"site":"www.google.com","name":"Google"}
+{"site":"www.uplooking.com","name":"尚观科技","num":1}
+```
+
+当第一个文档插入时，集合就会被创建。
+
+**合法的集合名**
+
+1. 集合名不能是空字符串""。
+2. 集合名不能含有\0字符（空字符)，这个字符表示集合名的结尾。
+3. 集合名不能以"system."开头，这是为系统集合保留的前缀。
+4. 用户创建的集合名字不能含有保留字符。有些驱动程序的确支持在集合名里面包含，这是因为某些系统生成的集合中包含该字符。除非你要访问这种系统创建的集合，否则千万不要在名字里出现$。　
+
+
+#### 元数据
+
+数据库的信息是存储在集合中。它们使用了系统的命名空间：`dbname.system.*`
+
+在MongoDB数据库中名字空间 <dbname>.system.* 是包含多种系统信息的特殊集合(Collection)，如下:
+
+|集合命名空间|描述|
+|:--|:--|
+|dbname.system.namespaces	|列出所有名字空间。|
+|dbname.system.indexes	|列出所有索引。|
+|dbname.system.profile	|包含数据库概要(profile)信息。|
+|dbname.system.users	|列出所有可访问数据库的用户。|
+|dbname.local.sources	|包含复制对端（slave）的服务器信息和状态。|
+
+对于修改系统集合中的对象有如下限制。
+
+* 在`{{system.indexes}}`插入数据，可以创建索引。但除此之外该表信息是不可变的(特殊的drop index命令将自动更新相关信息)。
+* `{{system.users}}`是可修改的。 
+* `{{system.profile}}`是可删除的。
+
+#### MongoDB 数据类型
+
+下表为MongoDB中常用的几种数据类型。
+
+|数据类型|	描述|
+|:--|:--|
+|String	|字符串。存储数据常用的数据类型。在 MongoDB 中，UTF-8 编码的字符串才是合法的。|
+|Integer|	整型数值。用于存储数值。根据你所采用的服务器，可分为 32 位或 64 位。|
+|Boolean|	布尔值。用于存储布尔值（真/假）。|
+|Double	|双精度浮点值。用于存储浮点值。|
+|Min/Max keys|	将一个值与 BSON（二进制的 JSON）元素的最低值和最高值相对比。|
+|Arrays	|用于将数组或列表或多个值存储为一个键。|
+|Timestamp	|时间戳。记录文档修改或添加的具体时间。|
+|Object	|用于内嵌文档。|
+|Null	|用于创建空值。|
+|Symbol	|符号。该数据类型基本上等同于字符串类型，但不同的是，它一般用于采用特殊符号类型的语言。|
+|Date	|日期时间。用 UNIX 时间格式来存储当前日期或时间。你可以指定自己的日期时间：创建 Date 对象，传入年月日信息。|
+|Object ID|	对象 ID。用于创建文档的 ID。|
+|Binary Data|	二进制数据。用于存储二进制数据。|
+|Code	|代码类型。用于在文档中存储 JavaScript 代码。|
+|Regular expression	|正则表达式类型。用于存储正则表达式。|
+
+
 ### 最基本的文档的读写更新删除
+
+#### 创建数据库
+
+创建数据库的语法为：`use database_name`
+
+学过mysql的同学会认为只有数据库存在才能use，但是在mongodb中use后面的数据库不存在就会创建。
+
+> 课堂实战：创建数据库uplooking
+
+```shell
+> use uplooking
+switched to db uplooking
+> db
+uplooking
+```
+
+如果此时用`show dbs`查看所有的数据库会发现刚才创建的uplooking库并不存在，这是因为uplooking库中没有数据导致的。
+
+```shell
+> show dbs
+admin  0.000GB
+local  0.000GB
+```
+
+#### 删除数据库
+
+MongoDB 删除数据库的语法格式如下：`db.dropDatabase()`
+
+> 课堂实战：创建数据库booboo，再删除booboo数据库
+
+```shell
+> use booboo
+switched to db booboo
+> db
+booboo
+> db.dropDatabase()
+{ "ok" : 1 }
+```
+
+#### 插入文档
+
+文档的数据结构和JSON基本一样。所有存储在集合中的数据都是BSON格式。
+
+BSON是一种类json的一种二进制形式的存储格式,简称Binary JSON。
+
+MongoDB 使用 insert() 或 save() 方法向集合中插入文档，语法如下：
+
+`db.COLLECTION_NAME.insert(document)`
+
+> 课堂实战：向uplooking库中booboo集合中插入文档
+
+```shell
+> use uplooking
+switched to db uplooking
+> db.booboo.insert({'title': 'mongodb',
+... "description" : "mongodb is a nosql database",
+... "by" : "www.uplooking.com",
+... "tags" : [ "mongodb", "database", "nosql" ],
+... "likes" : 100})
+WriteResult({ "nInserted" : 1 })
+```
+
+插入的时候，key可以不加引号，因为默认key的数据类型只能是字符串类型。
+
+以上实例中 booboo 是我们的集合名，如果该集合不在该数据库中， MongoDB 会自动创建该集合并插入文档。
+
+查看已插入文档：`db.COLLECTION_NAME.find()`
+
+```shell
+> db.booboo.find()
+{ "_id" : ObjectId("58818af08fce77b49860b790"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+```
+
+我们也可以将数据定义为一个变量，如下所示：
+
+```shell
+> document=({'title': 'mongodb',
+... "description" : "mongodb is a nosql database",
+... "by" : "www.uplooking.com",
+... "tags" : [ "mongodb", "database", "nosql" ],
+... "likes" : 100})
+{
+	"title" : "mongodb",
+	"description" : "mongodb is a nosql database",
+	"by" : "www.uplooking.com",
+	"tags" : [
+		"mongodb",
+		"database",
+		"nosql"
+	],
+	"likes" : 100
+}
+```
+
+执行插入操作：
+
+```shell
+> db.booboo.insert(document)
+WriteResult({ "nInserted" : 1 })
+```
+
+插入文档你也可以使用 `db.col.save(document)` 命令。如果不指定 `_id` 字段 `save()` 方法类似于 `insert()` 方法。如果指定 `_id` 字段，则会更新该 `_id` 的数据。
+
+#### 更新文档
+
+MongoDB 使用 `update()` 和 `save()` 方法来更新集合中的文档。接下来让我们详细来看下两个函数的应用及其区别。
+
+**update() 方法**
+
+update() 方法用于更新已存在的文档。语法格式如下：
+
+```shell
+db.collection.update(
+   <query>,
+   <update>,
+   {
+     upsert: <boolean>,
+     multi: <boolean>,
+     writeConcern: <document>
+   }
+)
+```
+
+参数说明：
+
+* query : update的查询条件，类似sql update查询内where后面的。
+* update : update的对象和一些更新的操作符（如$,$inc...）等，也可以理解为sql update查询内set后面的
+* upsert : 可选，这个参数的意思是，如果不存在update的记录，是否插入objNew,true为插入，默认是false，不插入。
+* multi : 可选，mongodb 默认是false,只更新找到的第一条记录，如果这个参数为true,就把按条件查出来多条记录全部更新。
+* writeConcern :可选，抛出异常的级别。
+
+实例
+我们在集合 col 中插入如下数据：
+>db.col.insert({
+    title: 'MongoDB 教程', 
+    description: 'MongoDB 是一个 Nosql 数据库',
+    by: '菜鸟教程',
+    url: 'http://www.runoob.com',
+    tags: ['mongodb', 'database', 'NoSQL'],
+    likes: 100
+})
+接着我们通过 update() 方法来更新标题(title):
+>db.col.update({'title':'MongoDB 教程'},{$set:{'title':'MongoDB'}})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })   # 输出信息
+> db.col.find().pretty()
+{
+        "_id" : ObjectId("56064f89ade2f21f36b03136"),
+        "title" : "MongoDB",
+        "description" : "MongoDB 是一个 Nosql 数据库",
+        "by" : "菜鸟教程",
+        "url" : "http://www.runoob.com",
+        "tags" : [
+                "mongodb",
+                "database",
+                "NoSQL"
+        ],
+        "likes" : 100
+}
+>
+可以看到标题(title)由原来的 "MongoDB 教程" 更新为了 "MongoDB"。
+以上语句只会修改第一条发现的文档，如果你要修改多条相同的文档，则需要设置 multi 参数为 true。
+>db.col.update({'title':'MongoDB 教程'},{$set:{'title':'MongoDB'}},{multi:true})
+save() 方法
+save() 方法通过传入的文档来替换已有文档。语法格式如下：
+db.collection.save(
+   <document>,
+   {
+     writeConcern: <document>
+   }
+)
+参数说明：
+document : 文档数据。
+writeConcern :可选，抛出异常的级别。
+实例
+以下实例中我们替换了 _id 为 56064f89ade2f21f36b03136 的文档数据：
+>db.col.save({
+	"_id" : ObjectId("56064f89ade2f21f36b03136"),
+    "title" : "MongoDB",
+    "description" : "MongoDB 是一个 Nosql 数据库",
+    "by" : "Runoob",
+    "url" : "http://www.runoob.com",
+    "tags" : [
+            "mongodb",
+            "NoSQL"
+    ],
+    "likes" : 110
+})
+替换成功后，我们可以通过 find() 命令来查看替换后的数据
+>db.col.find().pretty()
+{
+        "_id" : ObjectId("56064f89ade2f21f36b03136"),
+        "title" : "MongoDB",
+        "description" : "MongoDB 是一个 Nosql 数据库",
+        "by" : "Runoob",
+        "url" : "http://www.runoob.com",
+        "tags" : [
+                "mongodb",
+                "NoSQL"
+        ],
+        "likes" : 110
+}
+> 
+更多实例
+只更新第一条记录：
+db.col.update( { "count" : { $gt : 1 } } , { $set : { "test2" : "OK"} } );
+全部更新：
+db.col.update( { "count" : { $gt : 3 } } , { $set : { "test2" : "OK"} },false,true );
+只添加第一条：
+db.col.update( { "count" : { $gt : 4 } } , { $set : { "test5" : "OK"} },true,false );
+全部添加加进去:
+db.col.update( { "count" : { $gt : 5 } } , { $set : { "test5" : "OK"} },true,true );
+全部更新：
+db.col.update( { "count" : { $gt : 15 } } , { $inc : { "count" : 1} },false,true );
+只更新第一条记录：
+db.col.update( { "count" : { $gt : 10 } } , { $inc : { "count" : 1} },false,false );
+
+#### 删除文档
+
+#### 删除集合
+
+集合删除语法格式如下：`db.collection.drop()`
+
+
+
+#### 查询文档
+
+#### 条件操作符
+
+#### $type操作符
+
+#### limit和skip方法
+
+#### 排序
+
+
 
 ### 各种不同类型的索引的创建与使用
 
