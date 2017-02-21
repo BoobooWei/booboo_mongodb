@@ -571,7 +571,7 @@ test
 
 ### 最基本的文档的读写更新删除
 
-#### 创建数据库
+#### 创建数据库 use dbname
 
 创建数据库的语法为：`use database_name`
 
@@ -594,7 +594,7 @@ admin  0.000GB
 local  0.000GB
 ```
 
-#### 删除数据库
+#### 删除数据库 db.dropDatabase()
 
 MongoDB 删除数据库的语法格式如下：`db.dropDatabase()`
 
@@ -609,7 +609,7 @@ booboo
 { "ok" : 1 }
 ```
 
-#### 插入文档
+#### 插入文档 insert()
 
 文档的数据结构和JSON基本一样。所有存储在集合中的数据都是BSON格式。
 
@@ -671,9 +671,9 @@ WriteResult({ "nInserted" : 1 })
 WriteResult({ "nInserted" : 1 })
 ```
 
-插入文档你也可以使用 `db.col.save(document)` 命令。如果不指定 `_id` 字段 `save()` 方法类似于 `insert()` 方法。如果指定 `_id` 字段，则会更新该 `_id` 的数据。
+插入文档你也可以使用 `db.booboo.save(document)` 命令。如果不指定 `_id` 字段 `save()` 方法类似于 `insert()` 方法。如果指定 `_id` 字段，则会更新该 `_id` 的数据。
 
-#### 更新文档
+#### 更新文档 update() save()
 
 MongoDB 使用 `update()` 和 `save()` 方法来更新集合中的文档。接下来让我们详细来看下两个函数的应用及其区别。
 
@@ -702,111 +702,649 @@ db.collection.update(
 * writeConcern :可选，抛出异常的级别。
 
 实例
-我们在集合 col 中插入如下数据：
->db.col.insert({
-    title: 'MongoDB 教程', 
-    description: 'MongoDB 是一个 Nosql 数据库',
-    by: '菜鸟教程',
-    url: 'http://www.runoob.com',
-    tags: ['mongodb', 'database', 'NoSQL'],
-    likes: 100
-})
+
+我们在集合 booboo 中的数据如下：
+
+```shell
+> db.booboo.find()
+{ "_id" : ObjectId("58abae1bc7d333637aa4bb35"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abaea0c7d333637aa4bb36"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abaedfc7d333637aa4bb37"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+```
+
 接着我们通过 update() 方法来更新标题(title):
->db.col.update({'title':'MongoDB 教程'},{$set:{'title':'MongoDB'}})
-WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })   # 输出信息
-> db.col.find().pretty()
-{
-        "_id" : ObjectId("56064f89ade2f21f36b03136"),
-        "title" : "MongoDB",
-        "description" : "MongoDB 是一个 Nosql 数据库",
-        "by" : "菜鸟教程",
-        "url" : "http://www.runoob.com",
-        "tags" : [
-                "mongodb",
-                "database",
-                "NoSQL"
-        ],
-        "likes" : 100
-}
->
+
+```shell
+> db.booboo.update({"title" : "mongodb"},{$set:{"title" : "MongoDB Learning"}})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+
+> db.booboo.find()
+{ "_id" : ObjectId("58abae1bc7d333637aa4bb35"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abaea0c7d333637aa4bb36"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abaedfc7d333637aa4bb37"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+```
+
 可以看到标题(title)由原来的 "MongoDB 教程" 更新为了 "MongoDB"。
+
 以上语句只会修改第一条发现的文档，如果你要修改多条相同的文档，则需要设置 multi 参数为 true。
->db.col.update({'title':'MongoDB 教程'},{$set:{'title':'MongoDB'}},{multi:true})
-save() 方法
+
+```shell
+> db.booboo.update({"title" : "mongodb"},{$set:{"title" : "MongoDB Learning"}},{multi:true})
+WriteResult({ "nMatched" : 2, "nUpserted" : 0, "nModified" : 2 })
+> db.booboo.find()
+{ "_id" : ObjectId("58abae1bc7d333637aa4bb35"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abaea0c7d333637aa4bb36"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abaedfc7d333637aa4bb37"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+```
+
+`db.booboo.find().pretty()`美观的显示，可以自己试一下
+
+
+**save() 方法**
+
 save() 方法通过传入的文档来替换已有文档。语法格式如下：
+
+```shell
 db.collection.save(
    <document>,
    {
      writeConcern: <document>
    }
 )
+```
+
 参数说明：
-document : 文档数据。
-writeConcern :可选，抛出异常的级别。
+
+* document : 文档数据。
+* writeConcern :可选，抛出异常的级别。
+
 实例
-以下实例中我们替换了 _id 为 56064f89ade2f21f36b03136 的文档数据：
->db.col.save({
-	"_id" : ObjectId("56064f89ade2f21f36b03136"),
-    "title" : "MongoDB",
-    "description" : "MongoDB 是一个 Nosql 数据库",
-    "by" : "Runoob",
-    "url" : "http://www.runoob.com",
-    "tags" : [
-            "mongodb",
-            "NoSQL"
-    ],
-    "likes" : 110
-})
-替换成功后，我们可以通过 find() 命令来查看替换后的数据
->db.col.find().pretty()
-{
-        "_id" : ObjectId("56064f89ade2f21f36b03136"),
-        "title" : "MongoDB",
-        "description" : "MongoDB 是一个 Nosql 数据库",
-        "by" : "Runoob",
-        "url" : "http://www.runoob.com",
-        "tags" : [
-                "mongodb",
-                "NoSQL"
-        ],
-        "likes" : 110
-}
-> 
-更多实例
-只更新第一条记录：
-db.col.update( { "count" : { $gt : 1 } } , { $set : { "test2" : "OK"} } );
-全部更新：
-db.col.update( { "count" : { $gt : 3 } } , { $set : { "test2" : "OK"} },false,true );
-只添加第一条：
-db.col.update( { "count" : { $gt : 4 } } , { $set : { "test5" : "OK"} },true,false );
-全部添加加进去:
-db.col.update( { "count" : { $gt : 5 } } , { $set : { "test5" : "OK"} },true,true );
-全部更新：
-db.col.update( { "count" : { $gt : 15 } } , { $inc : { "count" : 1} },false,true );
-只更新第一条记录：
-db.col.update( { "count" : { $gt : 10 } } , { $inc : { "count" : 1} },false,false );
 
-#### 删除文档
+以下实例中我们替换了 "_id" : ObjectId("58abae1bc7d333637aa4bb35") 的文档数据：
 
-#### 删除集合
+```shell
+> db.booboo.save({"_id" : ObjectId("58abae1bc7d333637aa4bb35"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100,'url':'http://www.uplooking.com'})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+> db.booboo.find()
+{ "_id" : ObjectId("58abae1bc7d333637aa4bb35"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100, "url" : "http://www.uplooking.com" }
+{ "_id" : ObjectId("58abaea0c7d333637aa4bb36"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abaedfc7d333637aa4bb37"), "title" : "MongoDB Learning", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+```
+
+#### 删除文档 remove()
+
+MongoDB remove()函数是用来移除集合中的数据。
+
+MongoDB数据更新可以使用update()函数。在执行remove()函数前先执行find()命令来判断执行的条件是否正确，这是一个比较好的习惯。
+
+语法
+
+remove() 方法的基本语法格式如下所示：
+
+```shell
+db.collection.remove(
+   <query>,
+   <justOne>
+)
+```
+
+如果你的 MongoDB 是 2.6 版本以后的，语法格式如下：
+
+```shell
+db.collection.remove(
+   <query>,
+   {
+     justOne: <boolean>,
+     writeConcern: <document>
+   }
+)
+```
+
+参数说明：
+
+* query :（可选）删除的文档的条件。
+* justOne : （可选）如果设为 true 或 1，则只删除一个文档。
+* writeConcern :（可选）抛出异常的级别。
+
+实例
+
+移除 title 为 'MongoDB Learning' 的文档：
+
+```shell
+> db.booboo.remove({"title" : "MongoDB Learning"})
+WriteResult({ "nRemoved" : 3 })
+> db.booboo.find()
+```
+
+如果你只想删除第一条找到的记录可以设置 justOne 为 1，如下所示：
+
+`db.COLLECTION_NAME.remove(DELETION_CRITERIA,1)`
+
+```shell
+> db.booboo.insert({'title':'a','likes':20})
+WriteResult({ "nInserted" : 1 })
+> db.booboo.insert({'title':'a','likes':30})
+WriteResult({ "nInserted" : 1 })
+> db.booboo.insert({'title':'c','likes':9})
+WriteResult({ "nInserted" : 1 })
+> db.booboo.find()
+{ "_id" : ObjectId("58abb894c7d333637aa4bb38"), "title" : "a", "likes" : 20 }
+{ "_id" : ObjectId("58abb8b2c7d333637aa4bb39"), "title" : "a", "likes" : 30 }
+{ "_id" : ObjectId("58abb8b8c7d333637aa4bb3a"), "title" : "c", "likes" : 9 }
+> db.booboo.remove({"title" : "a"},1)
+WriteResult({ "nRemoved" : 1 })
+> db.booboo.find()
+{ "_id" : ObjectId("58abb8b2c7d333637aa4bb39"), "title" : "a", "likes" : 30 }
+{ "_id" : ObjectId("58abb8b8c7d333637aa4bb3a"), "title" : "c", "likes" : 9 }
+```
+
+如果你想删除所有数据，可以使用以下方式（类似常规 SQL 的 truncate 命令）：
+
+```shell
+> db.booboo.remove()
+2017-02-21T11:53:09.280+0800 E QUERY    [main] Error: remove needs a query :
+DBCollection.prototype._parseRemove@src/mongo/shell/collection.js:409:1
+DBCollection.prototype.remove@src/mongo/shell/collection.js:434:18
+@(shell):1:1
+> db.booboo.remove({})
+WriteResult({ "nRemoved" : 2 })
+> db.booboo.find()
+```
+
+注意，db.booboo.remove()中一定写上"{}"，否则会报错哦！
+
+
+#### 删除集合 drop()
 
 集合删除语法格式如下：`db.collection.drop()`
 
+```shell
+> show dbs	
+admin      0.000GB
+local      0.000GB
+uplooking  0.000GB
+> db
+uplooking
+> show collections
+booboo
+> db.booboo.drop()
+true
+> show collections
+>
+```
 
+#### 查询文档 find() pretty()
 
-#### 查询文档
+语法
+
+MongoDB 查询数据的语法格式如下：
+
+```shell
+>db.COLLECTION_NAME.find()
+```
+
+find() 方法以非结构化的方式来显示所有文档。
+
+如果你需要以易读的方式来读取数据，可以使用 pretty() 方法，语法格式如下：
+
+```shell
+>db.booboo.find().pretty()
+```
+
+pretty() 方法以格式化的方式来显示所有文档。
+
+实例
+
+以下实例我们查询了集合 booboo 中的数据：
+
+```shell
+> db.booboo.insert({"title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 })
+WriteResult({ "nInserted" : 1 })
+
+> db.booboo.find().pretty()
+{
+	"_id" : ObjectId("58abd086c7d333637aa4bb3b"),
+	"title" : "mongodb",
+	"description" : "mongodb is a nosql database",
+	"by" : "www.uplooking.com",
+	"tags" : [
+		"mongodb",
+		"database",
+		"nosql"
+	],
+	"likes" : 100
+}
+```
+
+除了 find() 方法之外，还有一个 findOne() 方法，它只返回一个文档。
+
+```shell
+> db.booboo.insert({"title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 })
+WriteResult({ "nInserted" : 1 })
+
+> db.booboo.findOne()
+{
+	"_id" : ObjectId("58abd086c7d333637aa4bb3b"),
+	"title" : "mongodb",
+	"description" : "mongodb is a nosql database",
+	"by" : "www.uplooking.com",
+	"tags" : [
+		"mongodb",
+		"database",
+		"nosql"
+	],
+	"likes" : 100
+}
+```
+
+> #### MongoDB 与 RDBMS Where 语句比较
+
+如果你熟悉常规的 SQL 数据，通过下表可以更好的理解 MongoDB 的条件语句查询：
+
+|操作|	格式|	范例|	RDBMS中的类似语句|
+|:--|:--|:--|:--|
+|等于|	{<key>:<value>}	|db.booboo.find({"by":"www.uplooking.com"}).pretty()|	where by = 'www.uplooking.com'|
+|小于|	{<key>:{$lt:<value>}}	|db.booboo.find({"likes":{$lt:50}}).pretty()|	where likes < 50|
+|小于或等于|	{<key>:{$lte:<value>}}	|db.booboo.find({"likes":{$lte:50}}).pretty()|	where likes <= 50|
+|大于|	{<key>:{$gt:<value>}}	|db.boobool.find({"likes":{$gt:50}}).pretty()	|where likes > 50|
+|大于或等于|	{<key>:{$gte:<value>}}	|db.booboo.find({"likes":{$gte:50}}).pretty()|	where likes >= 50|
+|不等于|	{<key>:{$ne:<value>}}	|db.booboo.find({"likes":{$ne:50}}).pretty()|	where likes != 50|
+
+> #### MongoDB AND 条件
+
+MongoDB 的 find() 方法可以传入多个键(key)，每个键(key)以逗号隔开，及常规 SQL 的 AND 条件。
+
+语法格式如下：
+
+```shell
+>db.booboo.find({key1:value1, key2:value2}).pretty()
+```
+
+实例
+
+以下实例查询键 by 值为 www.uplooking.com 和键 title 值为  mongodb 的数据
+
+```shell
+> db.booboo.find({'by':'www.uplooking.com','title':'mongodb'})
+{ "_id" : ObjectId("58abd086c7d333637aa4bb3b"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abd0cbc7d333637aa4bb3c"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 }
+```
+
+以上实例中类似于 WHERE 语句：WHERE by='www.uplooking.com' AND title='mongodb'
+
+> #### MongoDB OR 条件
+
+MongoDB OR 条件语句使用了关键字 $or,语法格式如下：
+
+```shell
+>db.booboo.find(
+   {
+      $or: [
+	     {key1: value1}, {key2:value2}
+      ]
+   }
+).pretty()
+```
+
+实例
+
+以下实例中，我们演示了查询键 by 值为 www.uplooking.com 或键 title 值为 mongodb 的文档。
+
+```shell
+> db.booboo.find({$or:{'by':'www.uplooking.com','title':'mongodb'}}).pretty()
+Error: error: {
+	"ok" : 0,
+	"errmsg" : "$or must be an array",
+	"code" : 2,
+	"codeName" : "BadValue"
+}
+> db.booboo.find({$or:[{'by':'www.uplooking.com'},{'title':'mongodb'}]}).pretty()
+{
+	"_id" : ObjectId("58abd086c7d333637aa4bb3b"),
+	"title" : "mongodb",
+	"description" : "mongodb is a nosql database",
+	"by" : "www.uplooking.com",
+	"tags" : [
+		"mongodb",
+		"database",
+		"nosql"
+	],
+	"likes" : 100
+}
+{
+	"_id" : ObjectId("58abd0cbc7d333637aa4bb3c"),
+	"title" : "mongodb",
+	"description" : "mongodb is a nosql database",
+	"by" : "www.uplooking.com",
+	"tags" : [
+		"mongodb",
+		"database",
+		"nosql"
+	],
+	"likes" : 90
+}
+```
+
+> #### AND 和 OR 联合使用
+
+以下实例演示了 AND 和 OR 联合使用，类似常规 SQL 语句为： 'where likes>50 AND (by = 'www.uplooking.com' OR title = 'mongodb')'
+
+```shell
+> db.booboo.find({'likes':{$gt:50},$or:[{'by':'www.uplooking.com'},{'title':'mongodb'}]})
+{ "_id" : ObjectId("58abd086c7d333637aa4bb3b"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abd0cbc7d333637aa4bb3c"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 }
+> db.booboo.find({'likes':{$gt:50},$or:[{'by':'www.uplooking.com'},{'title':'mongodb'}]}).pretty()
+{
+	"_id" : ObjectId("58abd086c7d333637aa4bb3b"),
+	"title" : "mongodb",
+	"description" : "mongodb is a nosql database",
+	"by" : "www.uplooking.com",
+	"tags" : [
+		"mongodb",
+		"database",
+		"nosql"
+	],
+	"likes" : 100
+}
+{
+	"_id" : ObjectId("58abd0cbc7d333637aa4bb3c"),
+	"title" : "mongodb",
+	"description" : "mongodb is a nosql database",
+	"by" : "www.uplooking.com",
+	"tags" : [
+		"mongodb",
+		"database",
+		"nosql"
+	],
+	"likes" : 90
+}
+```
 
 #### 条件操作符
 
-#### $type操作符
+MongoDB中条件操作符有：
+
+(>) 大于 - $gt
+
+(<) 小于 - $lt
+
+(>=) 大于等于 - $gte
+
+(<= ) 小于等于 - $lte
+
+操作符在上一节中已经学习了基本语法，下面请完成相应练习：
+
+使用数据库uplooking，集合booboo中已有数据如下所示：
+
+```shell
+> db.booboo.find()
+{ "_id" : ObjectId("58abd086c7d333637aa4bb3b"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abd0cbc7d333637aa4bb3c"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 }
+{ "_id" : ObjectId("58abd66bc7d333637aa4bb3d"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 50 }
+{ "_id" : ObjectId("58abd66fc7d333637aa4bb3e"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 30 }
+```
+
+1. 获取 "booboo" 集合中 "likes" 大于 50 的数据
+2. 获取 "booboo" 集合中 "likes" 小于 90 的数据
+3. 获取 "booboo" 集合中 "likes" 大于等于 50 的数据
+4. 获取 "booboo" 集合中 "likes" 小于等于 90 的数据
+5. 获取 "booboo" 集合中 "likes" 大于 50 小于 100 的数据
+6. 获取 "booboo" 集合中 "likes" 小于 50 或者 大于 90 的数据
+
+答案如下：
+
+```shell
+> db.booboo.find({'likes':{$gt:50}})
+{ "_id" : ObjectId("58abd086c7d333637aa4bb3b"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abd0cbc7d333637aa4bb3c"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 }
+> db.booboo.find({'likes':{$lt:90}})
+{ "_id" : ObjectId("58abd66bc7d333637aa4bb3d"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 50 }
+{ "_id" : ObjectId("58abd66fc7d333637aa4bb3e"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 30 }
+> db.booboo.find({'likes':{$gte:50}})
+{ "_id" : ObjectId("58abd086c7d333637aa4bb3b"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abd0cbc7d333637aa4bb3c"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 }
+{ "_id" : ObjectId("58abd66bc7d333637aa4bb3d"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 50 }
+> db.booboo.find({'likes':{$lte:90}})
+{ "_id" : ObjectId("58abd0cbc7d333637aa4bb3c"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 }
+{ "_id" : ObjectId("58abd66bc7d333637aa4bb3d"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 50 }
+{ "_id" : ObjectId("58abd66fc7d333637aa4bb3e"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 30 }
+> db.booboo.find({'likes':{$gt:50,$lt:100}})
+{ "_id" : ObjectId("58abd0cbc7d333637aa4bb3c"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 90 }
+> db.booboo.find({$or:[{'likes':{$gt:90}},{'likes':{$lt:50}}]})
+{ "_id" : ObjectId("58abd086c7d333637aa4bb3b"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 100 }
+{ "_id" : ObjectId("58abd66fc7d333637aa4bb3e"), "title" : "mongodb", "description" : "mongodb is a nosql database", "by" : "www.uplooking.com", "tags" : [ "mongodb", "database", "nosql" ], "likes" : 30 }
+```
+
+#### $type操作符和数据类型
+
+$type操作符是基于BSON类型来检索集合中匹配的数据类型，并返回结果。
+
+MongoDB 中可以使用的类型如下表所示：
+
+|Type|	Number|	Alias|	Notes|
+|:--|:--|:--|:--|
+|Double|	1|	“double”|	 |
+|String|	2|	“string”|	 |
+|Object|	3|	“object”|	| 
+|Array|	4|	“array”|	 |
+|Binary data|	5|	“binData”|	 |
+|Undefined|	6|	“undefined”	|Deprecated.|
+|ObjectId|	7|	“objectId”|	 |
+|Boolean|	8|	“bool”|	 |
+|Date|	9|	“date”|	 |
+|Null|	10|	“null”|	 |
+|Regular Expression|	11|	“regex”	| |
+|DBPointer|	12|	“dbPointer”	|Deprecated.|
+|JavaScript|	13|	“javascript”|	 |
+|Symbol|	14|	“symbol”	|Deprecated.|
+|JavaScript (with scope)|	15|	“javascriptWithScope”|	 |
+|32-bit integer	|16|	“int”|	 |
+|Timestamp	|17|	“timestamp”|	 |
+|64-bit integer	|18|	“long”	| |
+|Decimal128	|19|	“decimal”	|New in version 3.4.|
+|Min key	|-1|	“minKey”|	 |
+|Max key	|127|	“maxKey”|	 |
+
+基本数据类型
+
+null：用于表示空值或者不存在的字段，{“x”:null}
+
+布尔型：布尔类型有两个值true和false，{“x”:true}
+
+数值：shell默认使用64为浮点型数值。{“x”：3.14}或{“x”：3}。对于整型值，可以使用NumberInt（4字节符号整数）或NumberLong（8字节符号整数），{“x”:NumberInt(“3”)}{“x”:NumberLong(“3”)}
+
+字符串：UTF-8字符串都可以表示为字符串类型的数据，{“x”：“呵呵”}
+
+日期：日期被存储为自新纪元依赖经过的毫秒数，不存储时区，{“x”:new Date()}
+
+正则表达式：查询时，使用正则表达式作为限定条件，语法与JavaScript的正则表达式相同，{“x”:/[abc]/}
+
+数组：数据列表或数据集可以表示为数组，{“x”： [“a“，“b”,”c”]}
+
+内嵌文档：文档可以嵌套其他文档，被嵌套的文档作为值来处理，{“x”:{“y”:3 }}
+
+对象Id：对象id是一个12字节的字符串，是文档的唯一标识，{“x”: objectId() }
+
+二进制数据：二进制数据是一个任意字节的字符串。它不能直接在shell中使用。如果要将非utf-字符保存到数据库中，二进制数据是唯一的方式。
+
+代码：查询和文档中可以包括任何JavaScript代码，{“x”:function(){/*…*/}}
+
+---
+
+请先删除原有的集合booboo中的数据，插入新的数据
+
+```shell
+> db.booboo.remove({})
+WriteResult({ "nRemoved" : 4 })
+> db.booboo.find()
+
+> db.booboo.insert({"title" : "MySQL", "description" : "MySQL is the most popular Open Source SQL database management system", "by" : "uplooking", "url" : "http://www.mysql.com", "tags" : [ "mysql", "database" ], "likes" : 200})
+WriteResult({ "nInserted" : 1 })
+> db.booboo.insert({"title" : "Python", "description" : "Python is an interpreted, object-oriented, high-level programming language with dynamic semantics", "by" : "uplooking", "url" : "http://www.python.org", "tags" : [ "language", "python" ], "likes" : 150})
+WriteResult({ "nInserted" : 1 })
+> db.booboo.insert({title:'MongoDB',description:'MongoDB is an open-source document database that provides high performance, high availability, and automatic scaling.',by:'uplooking',url:'http://www.mongodb.com',tags:['mongodb','database'],likes:100})
+WriteResult({ "nInserted" : 1 })
+
+> db.booboo.find().pretty()
+{
+	"_id" : ObjectId("58abddf6c7d333637aa4bb3f"),
+	"title" : "MySQL",
+	"description" : "MySQL is the most popular Open Source SQL database management system",
+	"by" : "uplooking",
+	"url" : "http://www.mysql.com",
+	"tags" : [
+		"mysql",
+		"database"
+	],
+	"likes" : 200
+}
+{
+	"_id" : ObjectId("58abdf0db1160d1f30d4f518"),
+	"title" : "Python",
+	"description" : "Python is an interpreted, object-oriented, high-level programming language with dynamic semantics",
+	"by" : "uplooking",
+	"url" : "http://www.python.org",
+	"tags" : [
+		"language",
+		"python"
+	],
+	"likes" : 150
+}
+{
+	"_id" : ObjectId("58abdf73b1160d1f30d4f519"),
+	"title" : "MongoDB",
+	"description" : "MongoDB is an open-source document database that provides high performance, high availability, and automatic scaling.",
+	"by" : "uplooking",
+	"url" : "http://www.mongodb.com",
+	"tags" : [
+		"mongodb",
+		"database"
+	],
+	"likes" : 100
+}
+```
+
+> #### MongoDB 操作符 - $type 实例
+
+获取 "booboo" 集合中 title 为 String 的数据
+
+
+```shell
+> db.booboo.find({'title':{$type:2}})
+{ "_id" : ObjectId("58abddf6c7d333637aa4bb3f"), "title" : "MySQL", "description" : "MySQL is the most popular Open Source SQL database management system", "by" : "uplooking", "url" : "http://www.mysql.com", "tags" : [ "mysql", "database" ], "likes" : 200 }
+{ "_id" : ObjectId("58abdf0db1160d1f30d4f518"), "title" : "Python", "description" : "Python is an interpreted, object-oriented, high-level programming language with dynamic semantics", "by" : "uplooking", "url" : "http://www.python.org", "tags" : [ "language", "python" ], "likes" : 150 }
+{ "_id" : ObjectId("58abdf73b1160d1f30d4f519"), "title" : "MongoDB", "description" : "MongoDB is an open-source document database that provides high performance, high availability, and automatic scaling.", "by" : "uplooking", "url" : "http://www.mongodb.com", "tags" : [ "mongodb", "database" ], "likes" : 100 }
+```
+
+
+
 
 #### limit和skip方法
 
+**MongoDB Limit() 方法**
+
+如果你需要在MongoDB中读取指定数量的数据记录，可以使用MongoDB的Limit方法，limit()方法接受一个数字参数，该参数指定从MongoDB中读取的记录条数。
+
+语法
+
+limit()方法基本语法如下所示：
+
+```shell
+>db.COLLECTION_NAME.find().limit(NUMBER)
+```
+
+实例：只查询集合 booboo 中两条记录
+
+```shell
+> db.booboo.find().limit(2).pretty()
+{
+	"_id" : ObjectId("58abddf6c7d333637aa4bb3f"),
+	"title" : "MySQL",
+	"description" : "MySQL is the most popular Open Source SQL database management system",
+	"by" : "uplooking",
+	"url" : "http://www.mysql.com",
+	"tags" : [
+		"mysql",
+		"database"
+	],
+	"likes" : 200
+}
+{
+	"_id" : ObjectId("58abdf0db1160d1f30d4f518"),
+	"title" : "Python",
+	"description" : "Python is an interpreted, object-oriented, high-level programming language with dynamic semantics",
+	"by" : "uplooking",
+	"url" : "http://www.python.org",
+	"tags" : [
+		"language",
+		"python"
+	],
+	"likes" : 150
+}
+```
+
+**MongoDB Skip() 方法**
+
+我们除了可以使用limit()方法来读取指定数量的数据外，还可以使用skip()方法来跳过指定数量的数据，skip方法同样接受一个数字参数作为跳过的记录条数。
+
+语法
+
+skip() 方法脚本语法格式如下：
+
+```shell
+>db.COLLECTION_NAME.find().limit(NUMBER).skip(NUMBER)
+```
+
+skip()方法默认参数为 0
+
+实例:
+
+1. 跳过一条数据，显示两条
+2. 跳过两条数据，显示一条
+
+```shell
+> db.booboo.find().limit(2).skip(1)
+{ "_id" : ObjectId("58abdf0db1160d1f30d4f518"), "title" : "Python", "description" : "Python is an interpreted, object-oriented, high-level programming language with dynamic semantics", "by" : "uplooking", "url" : "http://www.python.org", "tags" : [ "language", "python" ], "likes" : 150 }
+{ "_id" : ObjectId("58abdf73b1160d1f30d4f519"), "title" : "MongoDB", "description" : "MongoDB is an open-source document database that provides high performance, high availability, and automatic scaling.", "by" : "uplooking", "url" : "http://www.mongodb.com", "tags" : [ "mongodb", "database" ], "likes" : 100 }
+> db.booboo.find().limit(1).skip(2)
+{ "_id" : ObjectId("58abdf73b1160d1f30d4f519"), "title" : "MongoDB", "description" : "MongoDB is an open-source document database that provides high performance, high availability, and automatic scaling.", "by" : "uplooking", "url" : "http://www.mongodb.com", "tags" : [ "mongodb", "database" ], "likes" : 100 }
+```
+
 #### 排序
 
+MongoDB sort()方法
 
+在MongoDB中使用使用sort()方法对数据进行排序，sort()方法可以通过参数指定排序的字段，并使用 1 和 -1 来指定排序的方式，其中 1 为升序排列，而-1是用于降序排列。
+
+注： 如果没有指定sort()方法的排序方式，默认按照文档的升序排列。
+
+语法
+
+sort()方法基本语法如下所示：
+
+```shell
+>db.COLLECTION_NAME.find().sort({KEY:1})
+```
+
+实例：
+
+1.  booboo 集合中的数据按字段 likes 的降序排列
+
+```shell
+> 
+> db.booboo.find().sort({'likes':-1})
+{ "_id" : ObjectId("58abddf6c7d333637aa4bb3f"), "title" : "MySQL", "description" : "MySQL is the most popular Open Source SQL database management system", "by" : "uplooking", "url" : "http://www.mysql.com", "tags" : [ "mysql", "database" ], "likes" : 200 }
+{ "_id" : ObjectId("58abdf0db1160d1f30d4f518"), "title" : "Python", "description" : "Python is an interpreted, object-oriented, high-level programming language with dynamic semantics", "by" : "uplooking", "url" : "http://www.python.org", "tags" : [ "language", "python" ], "likes" : 150 }
+{ "_id" : ObjectId("58abdf73b1160d1f30d4f519"), "title" : "MongoDB", "description" : "MongoDB is an open-source document database that provides high performance, high availability, and automatic scaling.", "by" : "uplooking", "url" : "http://www.mongodb.com", "tags" : [ "mongodb", "database" ], "likes" : 100 }
+> db.booboo.find().sort({'likes':1})
+{ "_id" : ObjectId("58abdf73b1160d1f30d4f519"), "title" : "MongoDB", "description" : "MongoDB is an open-source document database that provides high performance, high availability, and automatic scaling.", "by" : "uplooking", "url" : "http://www.mongodb.com", "tags" : [ "mongodb", "database" ], "likes" : 100 }
+{ "_id" : ObjectId("58abdf0db1160d1f30d4f518"), "title" : "Python", "description" : "Python is an interpreted, object-oriented, high-level programming language with dynamic semantics", "by" : "uplooking", "url" : "http://www.python.org", "tags" : [ "language", "python" ], "likes" : 150 }
+{ "_id" : ObjectId("58abddf6c7d333637aa4bb3f"), "title" : "MySQL", "description" : "MySQL is the most popular Open Source SQL database management system", "by" : "uplooking", "url" : "http://www.mysql.com", "tags" : [ "mysql", "database" ], "likes" : 200 }
+```
 
 ### 各种不同类型的索引的创建与使用
+
+
 
 ### 复杂的聚合查询
 
@@ -815,6 +1353,9 @@ db.col.update( { "count" : { $gt : 10 } } , { $inc : { "count" : 1} },false,fals
 ### 数据备份与恢复
 
 ### 数据迁移
+
+
+
 
 ## 简单运维 MongoDB
 
@@ -829,6 +1370,8 @@ db.col.update( { "count" : { $gt : 10 } } , { $inc : { "count" : 1} },false,fals
 ### 数据库发生拒绝服务时如何排查原因
 
 ### 数据库磁盘快满时如何处理
+
+
 
 ## 难度 
 
