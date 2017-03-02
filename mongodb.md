@@ -305,6 +305,213 @@ MongoDB 的 Web 界面访问端口比服务的端口多1000。
 
 ![02](pic/02.jpg)
 
+### MongoDB的安全配置策略
+
+MongoDB黑客赎金事件始末
+
+2015年底，有专家指出至少35000万个MongoDB数据库暴露在互联网上，近684.8T的数据在裸奔。据统计，今年1月Shodan上暴露在公网的MongoDB数据库多达47000个。著名安全专家John Matherly观察，不安全数据在以可怕的速度增加，从2015年7月到12月，短短四个月的时间不安全数据库实例增加了5000。Matherly在2015年就提出了这些裸露数据存在着巨大风险的论述。
+
+果不其然，2016年12月27日，GDI Foundation 的安全研究人员 Victor Gevers首次发现了攻击者利用配置存在纰漏的开源数据库MongoDB展开了勒索行为。自称Harak1r1 的黑客组织将网络上公开的MongoDB资料库中的资料汇出，并将MongoDB服务器上的资料移除，然后向数据库所有人索取0.2个比特币(约208美元)的赎金。据悉，Harak1r1在短短几天的时间内攻击了2000多个MongoDB数据库，并有十多个所有人已支付赎金。
+
+Harak1r1的攻击行为似乎点燃了黑客的攻击本能，众多鬣狗一下子围了上来，own3d(干掉了近千个数据库，赎金金额为0.5个比特币)、0704341626asdf(据统计干掉了至少740个数据库，赎金金额为0.15个比特币)、kraken0、3lix1r(这两个为后来者，但攻击速度不容小觑)。目前，MongoDB黑客攻击事件已经是一场大乱斗了，甚至还出现了黑客篡改其它黑客勒索信的情况。
+
+默认Mongodb启动后任何机器都能通过默认端口连接上，非常危险，如果来个恶意分子把你数据给remove那就哭死吧，所以接下来说说Mongodb的安全配置。
+
+#### Security Checklist
+
+
+- [ ] Enable Access Control and Enforce Authentication
+- [ ] Configure Role-Based Access Control
+- [ ] Encrypt Communication
+- [ ] Encrypt and Protect Data
+- [ ] Limit Network Exposure
+- [ ] Audit System Activity
+- [ ] Run MongoDB with a Dedicated User
+- [ ] Run MongoDB with Secure Configuration Options
+- [ ] Request a Security Technical Implementation Guide (where applicable)
+- [ ] Consider Security Standards Compliance
+
+安全检查列表如下：
+
+- [ ] 启用访问控制和执行身份验证
+- [ ] 配置基于角色的访问控制
+- [ ] 加密通信
+- [ ] 加密和保护数据
+- [ ] 限制网络曝光
+- [ ] 审计系统活动
+- [ ] 运行MongoDB使用专用的用户
+- [ ] 用安全运行MongoDB配置选项
+- [ ] 请求安全技术实现指南(如适用)
+- [ ] 考虑安全标准遵从性
+
+#### 认证和授权
+
+虽然 `认证` 和 `授权` 关系非常紧密，认证和授权是两个不同的概念。认证是用来识别用户的身份，授权控制已经认证的用户使用资源和行为的权限。
+
+MongoDB在默认的情况下启动时是没有用户名和密码的验证的，如果你需要使用密码验证功能，可以通过下面两种方式打开：
+
+```shell
+# 启动mongodb时加上--auth
+sudo mongod --auth
+ 
+# 修改/etc/mongodb.conf配置文件
+# 将auth = True这一行的注释去掉，保存文件，重启mongodb即可，而admin.system.users中保存了admin用户的信息。
+```
+
+
+
+
+启动认证的一般流程：
+
+1.不带访问控制的启动服务	`mongod --dbpath /mongodb/data/db --logpath /mongodb/data/log/mongodb.log --logappend &`
+
+2.连接实例	`mongo --port 27017`
+
+3.创建超级账户
+
+```shell
+> use admin
+> db.createUser(
+  {
+    user: "myUserAdmin",
+    pwd: "abc123",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" } ]
+  }
+)
+```
+
+4.带访问控制重新启动实例 `mongod --auth --dbpath--dbpath /mongodb/data/db --logpath /mongodb/data/log/mongodb.log --logappend &`
+
+5.连接并认证超级账户
+
+```shell
+# 第一种方法连接前认证——使用 -u -p --authenticationDatabase 参数|解释|
+mongo --port 27017 -u "myUserAdmin" -p "abc123" --authenticationDatabase "admin"
+
+# 第二种方法连接后认证，在mongo shell中使用 db.auth(<username>
+mongo --port 27017
+> use admin
+> db.auth("myUserAdmin", "abc123" )
+```
+
+6.根据开发要求创建其他用户
+
+一旦成功认证了超级用户，就可以通过`db.createUser() `命令以及`内置或者用户自定义的角色（权限）`来创建其他用户
+
+而`myUserAdmin`用户的权限只能管理用户和角色（权限）
+
+接下来我们创建一个新用户`myTest`用户给`test`数据库，并且对`test`数据库拥有读写权限`readWrite role`，对`reporting`数据库有读的权限`read role`
+
+```shell
+use test
+db.createUser(
+  {
+    user: "myTester",
+    pwd: "xyz123",
+    roles: [ { role: "readWrite", db: "test" },
+             { role: "read", db: "reporting" } ]
+  }
+)
+```
+
+7. 用myTester用户连接和认证
+
+在连接前认证
+
+Start a mongo shell with the -u <username>, -p <password>, and the --authenticationDatabase <database> command line options:
+
+```shell
+mongo --port 27017 -u "myTester" -p "xyz123" --authenticationDatabase "test"
+```
+
+在连接后认证
+
+```shell
+# 连接
+mongo --port 27017
+
+# 认证
+> use test
+> db.auth("myTester", "xyz123" )
+
+# 插入一个集合
+> db.foo.insert( { x: 1, y: 1 } )
+
+# 查看reporting数据库的集合信息
+> use reporting
+> db.a.find()
+```
+
+
+
+
+
+MongoDB中的用户分为超级用户(super user)和普通的数据库用户(database user)：
+
+* 超级用户存放在admin数据库中(在MongoDB的初始情况下，admin数据库默认是空的)，这种用户拥有最大权限，可以对所有数据库进行任意操作；
+* 数据库用户则是存放在另外的数据库中，这种用户只能访问自己的数据库。所有的用户信息都存放在自己数据库的system.users表中。
+
+在MongoDB中创建用户非常简单，如下：
+
+```shell
+# 创建Admin用户
+mongo
+use admin
+db.createUser('super', '123456')
+ 
+# 创建普通用户
+mongo
+use test
+db.createUser('test_user', '123456')
+```
+
+具体的方法见MongoDB官方文档：add mongodb user
+
+在MongoDB中，用户和权限有以下特性：
+
+    1. 数据库是由超级用户来创建的，一个数据库可以包含多个用户，一个用户只能在一个数据库下，不同数据库中的用户可以同名；
+    2. 如果在 admin 数据库中不存在用户，即使 mongod 启动时添加了 --auth参数，此时不进行任何认证还是可以做任何操作；
+    3. 在 admin 数据库创建的用户具有超级权限，可以对 MongoDB 系统内的任何数据库的数据对象进行操作；
+    4. 特定数据库比如 test1 下的用户 test_user1，不能够访问其他数据库 test2，但是可以访问本数据库下其他用户创建的数据；
+    5. 不同数据库中同名的用户不能够登录其他数据库。比如数据库 test1 和 test2 都有用户 test_user，以 test_user 登录 test1 后,不能够登录到 test2 进行数据库操作
+
+删除用户的操作如下：
+
+```shell
+> use test
+> db.system.users.remove({user:"myTester"})
+```	
+	
+	
+#### 限制访问IP和端口
+
+MongoDB可以限制只允许某一特定IP来访问，只要在启动时加一个参数bind_ip即可，或者在/etc/mongodb.conf中添加bind_ip配置，如下:
+
+```shell
+# 方法一
+mongod ‐‐bind_ip 127.0.0.1,10.0.133.14
+# 方法二
+在/etc/mongodb.conf文件中添加以下内容：
+bind_ip = 127.0.0.1,10.0.133.14
+```
+
+这样之后，MongoDB服务端只有127.0.0.1和10.0.133.14这两个 IP 可以访问了。
+
+MongoDB默认的监听端口是27017，为了安全起见，你可以修改这个监听端口，避免恶意的连接尝试。修改方法同样有两种，如下：
+
+客户端访问时不指定端口会连接到默认端口27017。当你修改了MongoDB服务端的端口后，客户端连接MongoDB时需要指定端口号，如：
+
+```shell
+# 方法一
+mongod --bind_ip 127.0.0.1,10.0.133.14 --port 28018
+# 方法二
+在/etc/mongodb.conf文件中添加以下内容：
+port = 28018
+
+mongo 10.0.133.14:28018
+```
+
+
 ---
 
 ### 搭建具有冗余容错功能的复制集
@@ -569,7 +776,7 @@ test
 |Regular expression	|正则表达式类型。用于存储正则表达式。|
 
 
-### 最基本的文档的读写更新删除
+### 最基本的文档的读写更新删除 CRUD
 
 #### 创建数据库 use dbname
 
@@ -610,6 +817,14 @@ booboo
 ```
 
 #### 插入文档 insert()
+
+MongoDB中提供了以下方法来插入文档到一个集合:
+
+```shell
+db.collection.insert()
+db.collection.insertOne() New in version 3.2
+db.collection.insertMany() New in version 3.2
+```
 
 文档的数据结构和JSON基本一样。所有存储在集合中的数据都是BSON格式。
 
@@ -672,6 +887,8 @@ WriteResult({ "nInserted" : 1 })
 ```
 
 插入文档你也可以使用 `db.booboo.save(document)` 命令。如果不指定 `_id` 字段 `save()` 方法类似于 `insert()` 方法。如果指定 `_id` 字段，则会更新该 `_id` 的数据。
+
+
 
 #### 更新文档 update() save()
 
@@ -1344,9 +1561,588 @@ sort()方法基本语法如下所示：
 
 ### 各种不同类型的索引的创建与使用
 
+#### MongoDB 索引
+
+索引通常能够极大的提高查询的效率，如果没有索引，MongoDB在读取数据时必须扫描集合中的每个文件并选取那些符合查询条件的记录。
+
+这种扫描全集合的查询效率是非常低的，特别在处理大量的数据时，查询可以要花费几十秒甚至几分钟，这对网站的性能是非常致命的。
+
+索引是特殊的数据结构，索引存储在一个易于遍历读取的数据集合中，索引是对数据库表中一列或多列的值进行排序的一种结构
+
+#### 单键索引
+
+MongoDB使用 createIndex() 方法来创建索引。
+
+语法
+
+ensureIndex()方法基本语法格式如下所示：
+
+```shell
+>db.COLLECTION_NAME.createIndex({KEY:1})
+```
+
+语法中 Key 值为你要创建的索引字段，1为指定按升序创建索引，如果你想按降序来创建索引指定为-1即可。
+
+实例
+
+```shell
+# 数据库uplooking中，新建一个集合test，循环插入10万个文档
+
+> for (var i=0;i<100000;i++){
+... db.test.insert({username:'user'+i})
+... }
+WriteResult({ "nInserted" : 1 })
+```
+
+在任意游标(例如 查询）后面附加 explain() 方法可以返回一个含有查询过程的统计数据的文档，包括所使用的索引，扫描过的文档数，查询所消耗的毫秒数。
+
+```shell
+> db.test.find({username:'user1234'}).explain('executionStats')
+{
+	"queryPlanner" : {
+		"plannerVersion" : 1,
+		"namespace" : "uplooking.test",
+		"indexFilterSet" : false,
+		"parsedQuery" : {
+			"username" : {
+				"$eq" : "user1234"
+			}
+		},
+		"winningPlan" : {
+			"stage" : "COLLSCAN",
+			"filter" : {
+				"username" : {
+					"$eq" : "user1234"
+				}
+			},
+			"direction" : "forward"
+		},
+		"rejectedPlans" : [ ]
+	},
+	"executionStats" : {
+		"executionSuccess" : true,
+		"nReturned" : 1,
+		"executionTimeMillis" : 329,
+		"totalKeysExamined" : 0,
+		"totalDocsExamined" : 100000,
+		"executionStages" : {
+			"stage" : "COLLSCAN",
+			"filter" : {
+				"username" : {
+					"$eq" : "user1234"
+				}
+			},
+			"nReturned" : 1,
+			"executionTimeMillisEstimate" : 307,
+			"works" : 100002,
+			"advanced" : 1,
+			"needTime" : 100000,
+			"needYield" : 0,
+			"saveState" : 791,
+			"restoreState" : 791,
+			"isEOF" : 1,
+			"invalidates" : 0,
+			"direction" : "forward",
+			"docsExamined" : 100000
+		}
+	},
+	"serverInfo" : {
+		"host" : "mastera.uplooking.com",
+		"port" : 27017,
+		"version" : "3.4.1",
+		"gitVersion" : "5e103c4f5583e2566a45d740225dc250baacfbd7"
+	},
+	"ok" : 1
+}
+```
+
+参数很多，目前我们只关注其中的"totalDocsExamined" : 100000和"executionTimeMillis" : 329
+
+在完成这个查询过程中扫描的文档总数为10万，执行的总时长为30毫秒。
+
+如果数据有1000万个，如果每次查询文档都要遍历一遍，那么时间是相当的长的。
+
+对于此类查询，索引是一个非常好的解决方案。
+
+```shell
+> db.test.createIndex({'username':1})
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 1,
+	"numIndexesAfter" : 2,
+	"ok" : 1
+}
+> db.test.find({username:'user1234'}).explain('executionStats')
+{
+	"queryPlanner" : {
+		"plannerVersion" : 1,
+		"namespace" : "uplooking.test",
+		"indexFilterSet" : false,
+		"parsedQuery" : {
+			"username" : {
+				"$eq" : "user1234"
+			}
+		},
+		"winningPlan" : {
+			"stage" : "FETCH",
+			"inputStage" : {
+				"stage" : "IXSCAN",
+				"keyPattern" : {
+					"username" : 1
+				},
+				"indexName" : "username_1",
+				"isMultiKey" : false,
+				"multiKeyPaths" : {
+					"username" : [ ]
+				},
+				"isUnique" : false,
+				"isSparse" : false,
+				"isPartial" : false,
+				"indexVersion" : 2,
+				"direction" : "forward",
+				"indexBounds" : {
+					"username" : [
+						"[\"user1234\", \"user1234\"]"
+					]
+				}
+			}
+		},
+		"rejectedPlans" : [ ]
+	},
+	"executionStats" : {
+		"executionSuccess" : true,
+		"nReturned" : 1,
+		"executionTimeMillis" : 56,
+		"totalKeysExamined" : 1,
+		"totalDocsExamined" : 1,
+		"executionStages" : {
+			"stage" : "FETCH",
+			"nReturned" : 1,
+			"executionTimeMillisEstimate" : 20,
+			"works" : 2,
+			"advanced" : 1,
+			"needTime" : 0,
+			"needYield" : 0,
+			"saveState" : 1,
+			"restoreState" : 1,
+			"isEOF" : 1,
+			"invalidates" : 0,
+			"docsExamined" : 1,
+			"alreadyHasObj" : 0,
+			"inputStage" : {
+				"stage" : "IXSCAN",
+				"nReturned" : 1,
+				"executionTimeMillisEstimate" : 20,
+				"works" : 2,
+				"advanced" : 1,
+				"needTime" : 0,
+				"needYield" : 0,
+				"saveState" : 1,
+				"restoreState" : 1,
+				"isEOF" : 1,
+				"invalidates" : 0,
+				"keyPattern" : {
+					"username" : 1
+				},
+				"indexName" : "username_1",
+				"isMultiKey" : false,
+				"multiKeyPaths" : {
+					"username" : [ ]
+				},
+				"isUnique" : false,
+				"isSparse" : false,
+				"isPartial" : false,
+				"indexVersion" : 2,
+				"direction" : "forward",
+				"indexBounds" : {
+					"username" : [
+						"[\"user1234\", \"user1234\"]"
+					]
+				},
+				"keysExamined" : 1,
+				"seeks" : 1,
+				"dupsTested" : 0,
+				"dupsDropped" : 0,
+				"seenInvalidated" : 0
+			}
+		}
+	},
+	"serverInfo" : {
+		"host" : "mastera.uplooking.com",
+		"port" : 27017,
+		"version" : "3.4.1",
+		"gitVersion" : "5e103c4f5583e2566a45d740225dc250baacfbd7"
+	},
+	"ok" : 1
+}
+```
+
+可以看到"executionTimeMillis" : 56,"totalDocsExamined" : 1
+
+一共只扫描了1个文档，总执行时间为56毫秒
+
+的确有点不可思议，查询在瞬间完成，因为通过索引只查找了一条数据，而不是100000条。
+
+当然使用索引是也是有代价的：对于添加的每一条索引，每次写操作（插入、更新、删除）都将耗费更多的时间。这是因为，当数据发生变化时，不仅要更新文档，还要更新级集合上的所有索引。因此，mongodb限制每个集合最多有64个索引。通常，在一个特定的集合上，不应该拥有两个以上的索引。
+
+
+#### 复合索引
+
+复合索引可以支持要求匹配多个键的查询。
+
+索引的值是按一定顺序排列的，所以使用索引键对文档进行排序非常快。
+
+```shell
+>db.COLLECTION_NAME.createIndex({KEY:1,KEY:1})
+``
+
+这里先根据age排序再根据username排序，所以username在这里发挥的作用并不大。为了优化这个排序，可能需要在age和username上建立索引。
+
+db.users.ensureIndex({'age':1, 'username': 1})
+
+这就建立了一个复合索引（建立在多个字段上的索引），如果查询条件包括多个键，这个索引就非常有用。
+
+建立复合索引后，每个索引条目都包括一个age字段和一个username字段，并且指向文档在磁盘上的存储位置。
+
+此时，age字段是严格升序排列的，如果age相等时再按照username升序排列。
+
+语法
+
+```shell
+db.users.createIndex({name:1,age:1})
+```
+
+
+实例
+
+新建users集合并循环插入文档
+
+```shell
+> for (var i=1;i<1000;i++){ for (var j=100;j>1;j--) { db.users.insert({name:'user'+i,age:j})   }}
+WriteResult({ "nInserted" : 1 })
+```
+
+测试一下查询{name:'user123',age:{$lt:5}}耗时多少
+
+```shell
+> db.users.find({name:'user123',age:{$lt:5}})
+{ "_id" : ObjectId("58ad368e89f7c6bec3f0a3c8"), "name" : "user123", "age" : 4 }
+{ "_id" : ObjectId("58ad368e89f7c6bec3f0a3c9"), "name" : "user123", "age" : 3 }
+{ "_id" : ObjectId("58ad368e89f7c6bec3f0a3ca"), "name" : "user123", "age" : 2 }
+
+> db.users.find({name:'user123',age:{$lt:5}}).explain('executionStats')
+{
+	"queryPlanner" : {
+		"plannerVersion" : 1,
+		"namespace" : "uplooking.users",
+		"indexFilterSet" : false,
+		"parsedQuery" : {
+			"$and" : [
+				{
+					"name" : {
+						"$eq" : "user123"
+					}
+				},
+				{
+					"age" : {
+						"$lt" : 5
+					}
+				}
+			]
+		},
+		"winningPlan" : {
+			"stage" : "COLLSCAN",
+			"filter" : {
+				"$and" : [
+					{
+						"name" : {
+							"$eq" : "user123"
+						}
+					},
+					{
+						"age" : {
+							"$lt" : 5
+						}
+					}
+				]
+			},
+			"direction" : "forward"
+		},
+		"rejectedPlans" : [ ]
+	},
+	"executionStats" : {
+		"executionSuccess" : true,
+		"nReturned" : 3,
+		"executionTimeMillis" : 98,
+		"totalKeysExamined" : 0,
+		"totalDocsExamined" : 98901,
+		"executionStages" : {
+			"stage" : "COLLSCAN",
+			"filter" : {
+				"$and" : [
+					{
+						"name" : {
+							"$eq" : "user123"
+						}
+					},
+					{
+						"age" : {
+							"$lt" : 5
+						}
+					}
+				]
+			},
+			"nReturned" : 3,
+			"executionTimeMillisEstimate" : 58,
+			"works" : 98903,
+			"advanced" : 3,
+			"needTime" : 98899,
+			"needYield" : 0,
+			"saveState" : 775,
+			"restoreState" : 775,
+			"isEOF" : 1,
+			"invalidates" : 0,
+			"direction" : "forward",
+			"docsExamined" : 98901
+		}
+	},
+	"serverInfo" : {
+		"host" : "mastera.uplooking.com",
+		"port" : 27017,
+		"version" : "3.4.1",
+		"gitVersion" : "5e103c4f5583e2566a45d740225dc250baacfbd7"
+	},
+	"ok" : 1
+}
+```
+
+重点观察以下参数
+
+* "executionTimeMillis" : 98,
+* "totalKeysExamined" : 0,
+* "totalDocsExamined" : 98901,
+
+耗时98毫秒，一共扫描了9万多个文档
+
+
+创建复合索引{name:1,age:1}后，再查询耗时又为多少？
+
+```shell
+> db.users.createIndex({name:1,age:1})
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 1,
+	"numIndexesAfter" : 2,
+	"ok" : 1
+}
+> db.users.find({name:'user123',age:{$lt:5}}).explain('executionStats')
+{
+	"queryPlanner" : {
+		"plannerVersion" : 1,
+		"namespace" : "uplooking.users",
+		"indexFilterSet" : false,
+		"parsedQuery" : {
+			"$and" : [
+				{
+					"name" : {
+						"$eq" : "user123"
+					}
+				},
+				{
+					"age" : {
+						"$lt" : 5
+					}
+				}
+			]
+		},
+		"winningPlan" : {
+			"stage" : "FETCH",
+			"inputStage" : {
+				"stage" : "IXSCAN",
+				"keyPattern" : {
+					"name" : 1,
+					"age" : 1
+				},
+				"indexName" : "name_1_age_1",
+				"isMultiKey" : false,
+				"multiKeyPaths" : {
+					"name" : [ ],
+					"age" : [ ]
+				},
+				"isUnique" : false,
+				"isSparse" : false,
+				"isPartial" : false,
+				"indexVersion" : 2,
+				"direction" : "forward",
+				"indexBounds" : {
+					"name" : [
+						"[\"user123\", \"user123\"]"
+					],
+					"age" : [
+						"[-inf.0, 5.0)"
+					]
+				}
+			}
+		},
+		"rejectedPlans" : [ ]
+	},
+	"executionStats" : {
+		"executionSuccess" : true,
+		"nReturned" : 3,
+		"executionTimeMillis" : 53,
+		"totalKeysExamined" : 3,
+		"totalDocsExamined" : 3,
+		"executionStages" : {
+			"stage" : "FETCH",
+			"nReturned" : 3,
+			"executionTimeMillisEstimate" : 0,
+			"works" : 4,
+			"advanced" : 3,
+			"needTime" : 0,
+			"needYield" : 0,
+			"saveState" : 0,
+			"restoreState" : 0,
+			"isEOF" : 1,
+			"invalidates" : 0,
+			"docsExamined" : 3,
+			"alreadyHasObj" : 0,
+			"inputStage" : {
+				"stage" : "IXSCAN",
+				"nReturned" : 3,
+				"executionTimeMillisEstimate" : 0,
+				"works" : 4,
+				"advanced" : 3,
+				"needTime" : 0,
+				"needYield" : 0,
+				"saveState" : 0,
+				"restoreState" : 0,
+				"isEOF" : 1,
+				"invalidates" : 0,
+				"keyPattern" : {
+					"name" : 1,
+					"age" : 1
+				},
+				"indexName" : "name_1_age_1",
+				"isMultiKey" : false,
+				"multiKeyPaths" : {
+					"name" : [ ],
+					"age" : [ ]
+				},
+				"isUnique" : false,
+				"isSparse" : false,
+				"isPartial" : false,
+				"indexVersion" : 2,
+				"direction" : "forward",
+				"indexBounds" : {
+					"name" : [
+						"[\"user123\", \"user123\"]"
+					],
+					"age" : [
+						"[-inf.0, 5.0)"
+					]
+				},
+				"keysExamined" : 3,
+				"seeks" : 1,
+				"dupsTested" : 0,
+				"dupsDropped" : 0,
+				"seenInvalidated" : 0
+			}
+		}
+	},
+	"serverInfo" : {
+		"host" : "mastera.uplooking.com",
+		"port" : 27017,
+		"version" : "3.4.1",
+		"gitVersion" : "5e103c4f5583e2566a45d740225dc250baacfbd7"
+	},
+	"ok" : 1
+}
+```
+
+没有创建索引前，耗时98毫秒，一共扫描了9万多个文档，现在只消耗了53毫秒，扫描3个文档。
+
+#### 多键索引
+
+在MongoDB中可以基于数组来创建索引。MongoDB为数组每一个元素创建索引值。
+
+多键索引支持数组字段的高效查询。多键索引能够基于字符串，数字数组以及嵌套文档进行创建。
+
+基于一个数组创建索引，MongoDB会自动创建为多键索引，无需刻意指定
+
+1. 多键索引也可以基于内嵌文档来创建
+2. 多键索引的边界值的计算依赖于特定的规则
+
+> 注，多键索引不等于在文档上的多列创建索引(复合索引)
+
+创建语法
+
+```shell
+            db.coll.createIndex( { <field>: < 1 or -1 > } )
+```
+
+复合多键索引
+
+1. 对于一个复合多键索引，每个索引最多可以包含一个数组。
+
+2. 在多于一个数组的情形下来创建复合多键索引不被支持。
+
+> 假定存在如下集合
+            
+`{ _id: 1, a: [ 1, 2 ], b: [ 1, 2 ], category: "AB - both arrays" }`
+
+不能基于一个基于{ a: 1, b: 1 }  的多键索引，因为a和b都是数组
+
+	
+> 假定存在如下集合
+
+```shell
+{ _id: 1, a: [1, 2], b: 1, category: "A array" }
+{ _id: 2, a: 1, b: [1, 2], category: "B array" }
+```
+
+则可以基于每一个文档创建一个基于{ a: 1, b: 1 }的复合多键索引
+
+原因是每一个索引的索引字段只有一个数组
+
+
+一些限制
+
+* 不能够指定一个多键索引为分片片键索引
+* 哈希索引不能够成为多键索引
+* 多键索引不支持覆盖查询
+
+基于整体查询数组字段
+
+* 当一个查询筛选器将一个数组作为整体实现精确匹配时，MongoDB可以使用多键索引查找数组的第一个元素，
+* 但不能使用多键索引扫描寻找整个数组。相反，使用多键索引查找查询数组的第一个元素后，MongoDB检索
+* 相关文档并且过滤出那些复合匹配条件的文档。
+
+
+#### 文本索引
+
+#### 2dsphere索引
+
+#### 2d索引
+
+#### Hashed索引
+
+#### 索引属性
+
+#### 索引创建
+
+#### 索引交集
+
+#### 管理索引
+
+#### 衡量索引的使用情况
+
+#### 索引策略
+
 
 
 ### 复杂的聚合查询
+
+
 
 ### 对数据集合进行分片 在不同分片间维持均衡
 
