@@ -7,6 +7,8 @@
 * 认证是用来识别用户的身份
 * 授权控制已经认证的用户使用资源和行为的权限。 
 
+本节初步了解和熟悉MongoDB的认证和权限，官方[3.4版本安全参考文献](http://www.mongoing.com/docs/reference/security.html)
+
 ## 认证
 
 ### 认证简介
