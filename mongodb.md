@@ -158,10 +158,10 @@ EOT
 cat > /alidata/mongodb/mongodb.server << ENDF
 #!/bin/bash
 start(){
-/alidata/mongodb/bin/mongod --config /alidata/mongodb/conf/mongodb${port}.conf &
+/alidata/mongodb/bin/mongod --config /alidata/mongodb/conf/mongodb\${port}.conf &
 }
 stop(){
-/alidata/mongodb/bin/mongod --config /alidata/mongodb/conf/mongodb${port}.conf --shutdown
+/alidata/mongodb/bin/mongod --config /alidata/mongodb/conf/mongodb\${port}.conf --shutdown
 }
 case \$1 in
 start)
@@ -377,6 +377,8 @@ WriteResult({ "nInserted" : 1 })
 
 6.MongoDb web 用户界面
 
+> 3.2 版后已移除: HTTP interface for MongoDB [http://www.mongoing.com/docs/administration/monitoring.html]
+
 MongoDB 提供了简单的 HTTP 用户界面。 如果你想启用该功能，需要在启动的时候指定参数 --rest 。
 
 ```shell
@@ -454,9 +456,13 @@ sudo mongod --auth
 
 启动认证的一般流程：
 
-1.不带访问控制的启动服务	`mongod --dbpath /mongodb/data/db --logpath /mongodb/data/log/mongodb.log --logappend &`
+1.不带访问控制的启动服务	
 
-2.连接实例	`mongo --port 27017`
+`mongod --dbpath /mongodb/data/db --logpath /mongodb/data/log/mongodb.log --logappend &`
+
+2.连接实例
+
+`mongo --port 27017`
 
 3.创建超级账户
 
@@ -471,7 +477,17 @@ sudo mongod --auth
 )
 ```
 
-4.带访问控制重新启动实例 `mongod --auth --dbpath--dbpath /mongodb/data/db --logpath /mongodb/data/log/mongodb.log --logappend &`
+4.带访问控制重新启动实例 
+
+`mongod --auth --dbpath--dbpath /mongodb/data/db --logpath /mongodb/data/log/mongodb.log --logappend &`
+
+或者修改配置文件
+
+```shell
+# http://www.mongoing.com/docs/reference/configuration-options.html#security.authorization
+security:
+    authorization=enabled
+```
 
 5.连接并认证超级账户
 
@@ -661,7 +677,7 @@ processManagement:
 ```shell
 net:
    port: <int>    #默认：27017
-   bindIp: <string>    #默认：所有接口。mongos或mongod绑定的IP地址，以侦听来自应用程序的连接要绑定到多个IP地址，请输入逗号分隔值列表。
+   bindIp: <string>    #4.0默认只允许本地访问。3.2默认允许所有。mongos或mongod绑定的IP地址，以侦听来自应用程序的连接要绑定到多个IP地址，请输入逗号分隔值列表。
    maxIncomingConnections: <int>    #默认：65536。mongos或mongod可以接受的最大并发连接数。
    wireObjectCheck: <boolean>    #默认值：True
    ipv6: <boolean> #在版本3.0中删除。MongoDB 3.0和更高版本中，IPv6始终处于启用状态。
