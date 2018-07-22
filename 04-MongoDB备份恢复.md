@@ -139,12 +139,13 @@ grant [`find`](https://docs.mongodb.com/manual/reference/privilege-actions/#fin
 ##### mongodump命令
 
 mongodump 
-`-u` ：用户名
-`-p` ：密码
-`--authenticationDatabase`： 认证库
-`-d` ：指定备份库名
-`-c` ：制定备份集合名
-`-0` ：制定备份数据存放目录，不存在会自动创建
+
+* `-u` ：用户名
+* `-p` ：密码
+* `--authenticationDatabase`： 认证库
+* `-d` ：指定备份库名
+* `-c` ：制定备份集合名
+* `-0` ：制定备份数据存放目录，不存在会自动创建
 
 
 #### mongodump练习
