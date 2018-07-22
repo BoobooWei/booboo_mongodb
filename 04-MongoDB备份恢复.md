@@ -127,7 +127,7 @@ Successfully added user: {
 ```
 
 
-#### mongodump 语法
+#### mongodump
 
 通过一次查询获取当前服务器快照，并将快照写入磁盘中
 
@@ -136,123 +136,73 @@ Successfully added user: {
 grant [`find`](https://docs.mongodb.com/manual/reference/privilege-actions/#find) action for each database to back up.
 
 
-##### 整库备份
+##### mongodump命令
+
+mongodump 
+`-u` ：用户名
+`-p` ：密码
+`--authenticationDatabase`： 认证库
+`-d` ：指定备份库名
+`-c` ：制定备份集合名
+`-0` ：制定备份数据存放目录，不存在会自动创建
+
+
+#### mongodump练习
+
+1. 备份单库test
+2. 导入数据时以覆盖的方式
 
 ```shell
-[root@hjx01 data1]# mongodump -h 127.0.0.1:22000 -uroot -proot123 --authenticationDatabase=admin -d hjxdb -o /tmp/col
+# 待备份库test数据明细
+> use test
+switched to db test
+> show collections;
+t1
+> db.t1.find()
+{ "_id" : ObjectId("5b54457d9f05972521015e36"), "id" : 1 }
+
+# 备份单库 test
+[root@localhost mongodb]# mongodump -u backup -p uplooking --authenticationDatabase=admin -d test -c t1 -o  /alidata/backup
+2018-07-22T02:44:39.288-0700	writing test.t1 to 
+2018-07-22T02:44:39.289-0700	done dumping test.t1 (1 document)
+# 查看备份文件
+[root@localhost mongodb]# ll /alidata/backup/test/
+total 8
+-rw-r--r--. 1 root root 34 Jul 22 02:44 t1.bson
+-rw-r--r--. 1 root root 79 Jul 22 02:44 t1.metadata.json
+[root@localhost test]# hexdump -c t1.bson
+0000000   "  \0  \0  \0  \a   _   i   d  \0   [   T   E   } 237 005 227
+0000010   %   ! 001   ^   6 001   i   d  \0  \0  \0  \0  \0  \0  \0 360
+0000020   ?  \0                                                        
+0000022
+
+# 插入数据
+> db.t1.insert({'id':2})
+WriteResult({ "nInserted" : 1 })
+> db.t1.find()
+{ "_id" : ObjectId("5b54457d9f05972521015e36"), "id" : 1 }
+{ "_id" : ObjectId("5b5453b08eb232836ac6a089"), "id" : 2 }
+
+# 恢复数据，覆盖test库
+[root@localhost test]# mongorestore --drop -u backup -p uplooking --authenticationDatabase=admin -d test  -o  /alidata/backup
+2018-07-22T02:52:42.623-0700	error parsing command line options: unknown option "o"
+2018-07-22T02:52:42.623-0700	try 'mongorestore --help' for more information
+[root@localhost test]# mongorestore --drop -u backup -p uplooking --authenticationDatabase=admin -d test  /alidata/backup/test
+2018-07-22T02:53:00.325-0700	building a list of collections to restore from /alidata/backup/test dir
+2018-07-22T02:53:00.326-0700	reading metadata for test.t1 from /alidata/backup/test/t1.metadata.json
+2018-07-22T02:53:00.332-0700	restoring test.t1 from /alidata/backup/test/t1.bson
+2018-07-22T02:53:00.334-0700	restoring indexes for collection test.t1 from metadata
+2018-07-22T02:53:00.334-0700	finished restoring test.t1 (1 document)
+2018-07-22T02:53:00.334-0700	done
+# 查看导入后的t1表情况
+> db.t1.find()
+{ "_id" : ObjectId("5b54457d9f05972521015e36"), "id" : 1 }
+
 ```
 
-##### 备份前检查
 
-```shell
-[root@hjx01 ~]# mongo 127.0.0.1:22000/admin -uroot -proot123
-MongoDB shell version: 3.2.16
-connecting to: 127.0.0.1:22000/admin
-> show dbs
-admin  0.000GB
-hjxdb  0.128GB
-local  0.000GB
-> use hjxdb
-switched to db hjxdb
-> db.col.find()
-{ "_id" : ObjectId("5a2f76c46f85c40e6adcbf1a"), "age" : 25, "e" : "Tom" }
-{ "_id" : ObjectId("5a2f76ed6f85c40e7972dd8c"), "age" : 25, "e" : "Tom" }
-{ "_id" : ObjectId("5a2f76fb6f85c40e87c17940"), "age" : 25, "e" : "Tom" }
-{ "_id" : ObjectId("5a2f7d154f034c6478c21507"), "id" : 100, "author" : "curry" }
-{ "_id" : ObjectId("5a2f80564f034c6478c21508"), "id" : 100, "author" : "curry" }
-{ "_id" : ObjectId("5a338bde667a143384c19b2c"), "user" : "leo" }
-> show collections
-col
-posts
-posts_01
-system.profile
-test
-userinfo
-zhuyuninfo
-```
 
-##### 整库备份过程
-
-```shell
-[root@hjx01 data1]# mongodump -h 127.0.0.1:22000 -uroot -proot123 --authenticationDatabase=admin -d hjxdb -o /tmp/col
-2017-12-20T10:22:33.366+0800	writing hjxdb.zhuyuninfo to 
-2017-12-20T10:22:33.368+0800	writing hjxdb.userinfo to 
-2017-12-20T10:22:33.368+0800	writing hjxdb.test to 
-2017-12-20T10:22:33.369+0800	writing hjxdb.system.profile to 
-2017-12-20T10:22:33.512+0800	done dumping hjxdb.test (1003 documents)
-2017-12-20T10:22:33.513+0800	writing hjxdb.posts to 
-2017-12-20T10:22:33.514+0800	done dumping hjxdb.posts (6 documents)
-2017-12-20T10:22:33.515+0800	writing hjxdb.col to 
-2017-12-20T10:22:33.517+0800	done dumping hjxdb.col (6 documents)
-2017-12-20T10:22:33.518+0800	writing hjxdb.posts_01 to 
-2017-12-20T10:22:33.521+0800	done dumping hjxdb.posts_01 (3 documents)
-2017-12-20T10:22:33.525+0800	done dumping hjxdb.system.profile (42 documents)
-2017-12-20T10:22:36.704+0800	[........................]  hjxdb.zhuyuninfo  56147/5483049  (1.0%)
-2017-12-20T10:22:36.704+0800	[#.......................]    hjxdb.userinfo  55215/1000000  (5.5%)
-2017-12-20T10:22:36.704+0800	
-2017-12-20T10:22:39.394+0800	[........................]  hjxdb.zhuyuninfo  114636/5483049   (2.1%)
-2017-12-20T10:22:39.394+0800	[##......................]    hjxdb.userinfo  117730/1000000  (11.8%)
-2017-12-20T10:22:39.394+0800	
-2017-12-20T10:22:42.440+0800	[........................]  hjxdb.zhuyuninfo  227125/5483049   (4.1%)
-2017-12-20T10:22:42.440+0800	[#####...................]    hjxdb.userinfo  218584/1000000  (21.9%)
-2017-12-20T10:22:42.440+0800	
-2017-12-20T10:22:45.388+0800	[#.......................]  hjxdb.zhuyuninfo  327112/5483049   (6.0%)
-2017-12-20T10:22:45.388+0800	[#######.................]    hjxdb.userinfo  310663/1000000  (31.1%)
-2017-12-20T10:22:45.388+0800	
-2017-12-20T10:22:48.441+0800	[#.......................]  hjxdb.zhuyuninfo  435640/5483049   (7.9%)
-2017-12-20T10:22:48.441+0800	[#########...............]    hjxdb.userinfo  413649/1000000  (41.4%)
-2017-12-20T10:22:48.441+0800	
-2017-12-20T10:22:51.403+0800	[##......................]  hjxdb.zhuyuninfo  465142/5483049   (8.5%)
-2017-12-20T10:22:51.403+0800	[###########.............]    hjxdb.userinfo  462772/1000000  (46.3%)
-2017-12-20T10:22:51.403+0800	
-2017-12-20T10:22:54.401+0800	[##......................]  hjxdb.zhuyuninfo  547000/5483049  (10.0%)
-2017-12-20T10:22:54.401+0800	[############............]    hjxdb.userinfo  535422/1000000  (53.5%)
-2017-12-20T10:22:54.401+0800	
-2017-12-20T10:22:57.474+0800	[##......................]  hjxdb.zhuyuninfo  598432/5483049  (10.9%)
-2017-12-20T10:22:57.474+0800	[##############..........]    hjxdb.userinfo  608350/1000000  (60.8%)
-2017-12-20T10:22:57.474+0800	
-2017-12-20T10:23:00.391+0800	[###.....................]  hjxdb.zhuyuninfo  686805/5483049  (12.5%)
-2017-12-20T10:23:00.391+0800	[################........]    hjxdb.userinfo  692995/1000000  (69.3%)
-2017-12-20T10:23:00.391+0800	
-2017-12-20T10:23:03.368+0800	[###.....................]  hjxdb.zhuyuninfo  771671/5483049  (14.1%)
-2017-12-20T10:23:03.368+0800	[##################......]    hjxdb.userinfo  782500/1000000  (78.2%)
-2017-12-20T10:23:03.368+0800	
-2017-12-20T10:23:06.408+0800	[###.....................]  hjxdb.zhuyuninfo  869752/5483049  (15.9%)
-2017-12-20T10:23:06.408+0800	[#####################...]    hjxdb.userinfo  878191/1000000  (87.8%)
-2017-12-20T10:23:06.408+0800	
-2017-12-20T10:23:10.168+0800	[####....................]  hjxdb.zhuyuninfo  951148/5483049  (17.3%)
-2017-12-20T10:23:10.168+0800	[######################..]    hjxdb.userinfo  950679/1000000  (95.1%)
-2017-12-20T10:23:10.168+0800	
-2017-12-20T10:23:11.964+0800	[########################]  hjxdb.userinfo  1000000/1000000  (100.0%)
-2017-12-20T10:23:11.964+0800	done dumping hjxdb.userinfo (1000000 documents)
-2017-12-20T10:23:12.386+0800	[####....................]  hjxdb.zhuyuninfo  992227/5483049  (18.1%)
-2017-12-20T10:23:15.376+0800	[####....................]  hjxdb.zhuyuninfo  1118554/5483049  (20.4%)
-2017-12-20T10:23:18.380+0800	[#####...................]  hjxdb.zhuyuninfo  1354648/5483049  (24.7%)
-2017-12-20T10:23:21.378+0800	[######..................]  hjxdb.zhuyuninfo  1548014/5483049  (28.2%)
-2017-12-20T10:23:24.397+0800	[#######.................]  hjxdb.zhuyuninfo  1742688/5483049  (31.8%)
-2017-12-20T10:23:27.379+0800	[########................]  hjxdb.zhuyuninfo  1840570/5483049  (33.6%)
-2017-12-20T10:23:30.442+0800	[########................]  hjxdb.zhuyuninfo  1989248/5483049  (36.3%)
-2017-12-20T10:23:33.379+0800	[#########...............]  hjxdb.zhuyuninfo  2110236/5483049  (38.5%)
-2017-12-20T10:23:36.375+0800	[##########..............]  hjxdb.zhuyuninfo  2317857/5483049  (42.3%)
-2017-12-20T10:23:39.380+0800	[###########.............]  hjxdb.zhuyuninfo  2532145/5483049  (46.2%)
-2017-12-20T10:23:42.374+0800	[###########.............]  hjxdb.zhuyuninfo  2612503/5483049  (47.6%)
-2017-12-20T10:23:45.625+0800	[############............]  hjxdb.zhuyuninfo  2804348/5483049  (51.1%)
-2017-12-20T10:23:48.369+0800	[############............]  hjxdb.zhuyuninfo  2869748/5483049  (52.3%)
-2017-12-20T10:23:51.382+0800	[#############...........]  hjxdb.zhuyuninfo  3107150/5483049  (56.7%)
-2017-12-20T10:23:54.438+0800	[##############..........]  hjxdb.zhuyuninfo  3321226/5483049  (60.6%)
-2017-12-20T10:23:58.248+0800	[################........]  hjxdb.zhuyuninfo  3657157/5483049  (66.7%)
-2017-12-20T10:24:01.651+0800	[#################.......]  hjxdb.zhuyuninfo  3951803/5483049  (72.1%)
-2017-12-20T10:24:03.392+0800	[##################......]  hjxdb.zhuyuninfo  4211693/5483049  (76.8%)
-2017-12-20T10:24:06.387+0800	[###################.....]  hjxdb.zhuyuninfo  4567881/5483049  (83.3%)
-2017-12-20T10:24:09.381+0800	[#####################...]  hjxdb.zhuyuninfo  4852345/5483049  (88.5%)
-2017-12-20T10:24:12.407+0800	[######################..]  hjxdb.zhuyuninfo  5130387/5483049  (93.6%)
-2017-12-20T10:24:15.717+0800	[#######################.]  hjxdb.zhuyuninfo  5444360/5483049  (99.3%)
-2017-12-20T10:24:16.625+0800	[########################]  hjxdb.zhuyuninfo  5504974/5483049  (100.4%)
-2017-12-20T10:24:16.625+0800	done dumping hjxdb.zhuyuninfo (5504974 documents)
-```
-
-##### 查看备份文件
-
+#### 等等
 ```shell
 [root@hjx01 hjxdb]# ll
 总用量 948640
