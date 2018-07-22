@@ -13,7 +13,7 @@
 | 冷备       | 将数据以隔离的方存放，备份数据不受原数据的影响               | ✔          | ✔        | 还原速度慢 |
 | 热备       | 搭建冗余的环境，例如主从(master-slave)和复制集(replication set) | ×          | ✔        | 瞬间还原   |
 
-### 冷备
+## 冷备
 
 > 将数据以隔离的方存放，备份数据不受原数据的影响
 
@@ -31,100 +31,23 @@
 * 物理备份
 * 逻辑备份
 
-| 分类     | 备份方法      | 数据一致性 | 服务可用性 |
-| -------- | ------------- | ---------- | ---------- |
-| 物理备份 | `tar`         | √          | √          |
-|          | `snapshot`    |            |            |
-| 逻辑备份 | `mongodump`   |            |            |
-|          | `mongoexport` |            |            |
+| 分类     | 备份方法      | 数据一致性 | 服务可用性 |与MySQL对比|
+| -------- | ------------- | ---------- | ---------- |---|
+| 物理备份 | `tar`         | ✔         | ×         |mysql的tar备份保证数据一致性需要停服|
+|          | `snapshot`    | ✔           |×            |mysql的快照备份保证数据一致需要加全局读锁|
+| 逻辑备份 | `mongodump`   |  ✔          | ✔           |mysqldump逻辑备份只有备份innodb存储引擎的表可以做到数据一致服务可用|
+| 数据文件备份         | `mongoexport` |            |  |          类似mysql -e 'select * from t1' > t1.xls;mysqlload < t1.xls|
 
 
+## 物理备份工具_tar和snapshot
+ 
+物理备份就是备份文件系统中的文件。需要停服或者加锁，保证没有新数据写入的情况下去备份数据目录，否则备份出来的数据是已损坏的，将无法正确恢复。
 
-## MongoDB数据文件概览
+### MongoDB数据文件概览
 
 > 初步了解存储引擎WiredTiger数据存储情况。
 >
 > 参考[【MongoDB Wiredtiger存储引擎实现原理】](http://www.mongoing.com/archives/2540)
-
-```shell
-[root@sh_01 27017]# cd /alidata/mongodb/data/27017/
-[root@sh_01 27017]# ll -R
-.:
-total 160
-drwxr-xr-x. 4 root root    37 Jul 20 13:28 admin
-drwxr-xr-x. 2 root root  4096 Jul 20 18:23 diagnostic.data
-drwxr-xr-x. 2 root root   110 Jul 20 17:08 journal
-drwxr-xr-x. 4 root root    37 Jul 20 11:50 local
--rw-r--r--. 1 root root 36864 Jul 20 17:07 _mdb_catalog.wt
--rw-r--r--. 1 root root     6 Jul 20 17:07 mongod.lock
--rw-r--r--. 1 root root 36864 Jul 20 17:35 sizeStorer.wt
--rw-r--r--. 1 root root    95 Jul 20 11:50 storage.bson
-drwxr-xr-x. 4 root root    37 Jul 20 13:46 test
--rw-r--r--. 1 root root    49 Jul 20 11:50 WiredTiger
--rw-r--r--. 1 root root  4096 Jul 20 17:07 WiredTigerLAS.wt
--rw-r--r--. 1 root root    21 Jul 20 11:50 WiredTiger.lock
--rw-r--r--. 1 root root   997 Jul 20 17:36 WiredTiger.turtle
--rw-r--r--. 1 root root 61440 Jul 20 17:36 WiredTiger.wt
-
-./admin:
-total 0
-drwxr-xr-x. 2 root root 68 Jul 20 13:28 collection
-drwxr-xr-x. 2 root root 99 Jul 20 13:28 index
-
-./admin/collection:
-total 52
--rw-r--r--. 1 root root 16384 Jul 20 17:07 2-902444405318211465.wt
--rw-r--r--. 1 root root 36864 Jul 20 17:17 4-902444405318211465.wt
-
-./admin/index:
-total 88
--rw-r--r--. 1 root root 16384 Jul 20 17:07 3-902444405318211465.wt
--rw-r--r--. 1 root root 36864 Jul 20 17:17 5-902444405318211465.wt
--rw-r--r--. 1 root root 36864 Jul 20 17:17 6-902444405318211465.wt
-
-./diagnostic.data:
-total 804
--rw-r--r--. 1 root root 189861 Jul 20 13:45 metrics.2018-07-20T03-50-14Z-00000
--rw-r--r--. 1 root root  18812 Jul 20 13:49 metrics.2018-07-20T05-45-13Z-00000
--rw-r--r--. 1 root root  18283 Jul 20 13:51 metrics.2018-07-20T05-49-03Z-00000
--rw-r--r--. 1 root root  20173 Jul 20 13:59 metrics.2018-07-20T05-51-56Z-00000
--rw-r--r--. 1 root root 275395 Jul 20 17:00 metrics.2018-07-20T06-06-54Z-00000
--rw-r--r--. 1 root root  20355 Jul 20 17:07 metrics.2018-07-20T09-00-10Z-00000
--rw-r--r--. 1 root root 134485 Jul 20 18:23 metrics.2018-07-20T09-07-15Z-00000
--rw-r--r--. 1 root root   6764 Jul 20 18:23 metrics.interim
-
-./journal:
-total 204816
--rw-r--r--. 1 root root     13824 Jul 20 17:36 WiredTigerLog.0000000007
--rw-r--r--. 1 root root 104857600 Jul 20 17:07 WiredTigerPreplog.0000000001
--rw-r--r--. 1 root root 104857600 Jul 20 17:07 WiredTigerPreplog.0000000002
-
-./local:
-total 0
-drwxr-xr-x. 2 root root 37 Jul 20 11:50 collection
-drwxr-xr-x. 2 root root 37 Jul 20 11:50 index
-
-./local/collection:
-total 36
--rw-r--r--. 1 root root 36864 Jul 20 17:08 0-902444405318211465.wt
-
-./local/index:
-total 36
--rw-r--r--. 1 root root 36864 Jul 20 17:08 1-902444405318211465.wt
-
-./test:
-total 0
-drwxr-xr-x. 2 root root 38 Jul 20 13:46 collection
-drwxr-xr-x. 2 root root 38 Jul 20 13:46 index
-
-./test/collection:
-total 36
--rw-r--r--. 1 root root 36864 Jul 20 17:34 0-2322975750872071160.wt
-
-./test/index:
-total 36
--rw-r--r--. 1 root root 36864 Jul 20 17:34 1-2322975750872071160.wt
-```
 
 Mongodb里一个典型的Wiredtiger数据库存储布局大致如下：
 
@@ -156,91 +79,70 @@ $tree
 
 ![0102-zyd-MongoDB WiredTiger存储引擎实现原理-4](http://www.mongoing.com/wp-content/uploads/2016/01/0102-zyd-MongoDB-WiredTiger%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86-4-300x176.jpg)
 
-# 一、备份
 
- ### mongodump说明
+### tar和snapshot工具
 
-通过一次查询获取当前服务器快照，并将快照写入磁盘中
+tar命令对mongodb的数据目录打包压缩即可
+snapshot需要提前使用lvm，并挂接mongodb的数据目录使用，才可以使用。
 
-在获取快照后，服务器还会有数据写入，为了保证备份的安全，还是可以利用fsync锁使服务器数据暂时写入缓存中
+#### 备份的一般步骤
 
-grant [`find`](https://docs.mongodb.com/manual/reference/privilege-actions/#find) action for each database to back up.
+1. 停服务
+2. tar打包或者快照
+3. 启服务
 
-### mongodump帮助
+
+### 逻辑备份工具mongodump
+
+#### 备份和恢复的权限说明
+
+最小权限为backup和restore;认证数据库必须为admin
 
 ```shell
-[root@hjx01 ~]# mongodump --help
-Usage:
-  mongodump <options>
+> use admin
+switched to db admin
 
-Export the content of a running server into .bson files.
+> db.createUser({user:'backup',pwd:'uplooking',roles:[{role:'backup',db:'admin'},{role:"restore",db:'test'}]})
+2018-07-22T02:14:11.124-0700 E QUERY    [thread1] Error: couldn't add user: No role named restore@test :
+_getErrorWithCode@src/mongo/shell/utils.js:25:13
+DB.prototype.createUser@src/mongo/shell/db.js:1267:15
+@(shell):1:1
 
-Specify a database with -d and a collection with -c to only dump that database or collection.
+> db.createUser({user:'backup',pwd:'uplooking',roles:[{role:'backup',db:'admin'},{role:"restore",db:'admin'}]})
+Successfully added user: {
+	"user" : "backup",
+	"roles" : [
+		{
+			"role" : "backup",
+			"db" : "admin"
+		},
+		{
+			"role" : "restore",
+			"db" : "admin"
+		}
+	]
+}
 
-See http://docs.mongodb.org/manual/reference/program/mongodump/ for more information.
-
-general options:
-      --help                                                print usage
-      --version                                             print the tool version and exit
-
-verbosity options:
-  -v, --verbose=<level>                                     more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g.
-                                                            --verbose=N)
-      --quiet                                               hide all log output
-
-connection options:
-  -h, --host=<hostname>                                     mongodb host to connect to (setname/host1,host2 for replica sets)
-      --port=<port>                                         server port (can also use --host hostname:port)
-
-ssl options:
-      --ssl                                                 connect to a mongod or mongos that has ssl enabled
-      --sslCAFile=<filename>                                the .pem file containing the root certificate chain from the certificate authority
-      --sslPEMKeyFile=<filename>                            the .pem file containing the certificate and key
-      --sslPEMKeyPassword=<password>                        the password to decrypt the sslPEMKeyFile, if necessary
-      --sslCRLFile=<filename>                               the .pem file containing the certificate revocation list
-      --sslAllowInvalidCertificates                         bypass the validation for server certificates
-      --sslAllowInvalidHostnames                            bypass the validation for server name
-      --sslFIPSMode                                         use FIPS mode of the installed openssl library
-
-authentication options:
-  -u, --username=<username>                                 username for authentication
-  -p, --password=<password>                                 password for authentication
-      --authenticationDatabase=<database-name>              database that holds the user's credentials
-      --authenticationMechanism=<mechanism>                 authentication mechanism to use
-
-namespace options:
-  -d, --db=<database-name>                                  database to use
-  -c, --collection=<collection-name>                        collection to use
-
-query options:
-  -q, --query=                                              query filter, as a JSON string, e.g., '{x:{$gt:1}}'
-      --queryFile=                                          path to a file containing a query filter (JSON)
-      --readPreference=<string>|<json>                      specify either a preference name or a preference json object
-      --forceTableScan                                      force a table scan
-
-output options:
-  -o, --out=<directory-path>                                output directory, or '-' for stdout (defaults to 'dump')
-      --gzip                                                compress archive our collection output with Gzip
-      --repair                                              try to recover documents from damaged data files (not supported by all storage engines)
-      --oplog                                               use oplog for taking a point-in-time snapshot
-      --archive=<file-path>                                 dump as an archive to the specified path. If flag is specified without a value, archive is written to stdout
-      --dumpDbUsersAndRoles                                 dump user and role definitions for the specified database
-      --excludeCollection=<collection-name>                 collection to exclude from the dump (may be specified multiple times to exclude additional collections)
-      --excludeCollectionsWithPrefix=<collection-prefix>    exclude all collections from the dump that have the given prefix (may be specified multiple times to exclude additional
-                                                            prefixes)
-  -j, --numParallelCollections=                             number of collections to dump in parallel (4 by default)
 
 ```
 
-### mongodump 语法
 
-#### 整库备份
+#### mongodump 语法
+
+通过一次查询获取当前服务器快照，并将快照写入磁盘中
+
+在获取快照后，服务器还会有数据写入，为了保证备份的安全，还是可以利用fsync和lock使服务器数据暂时写入缓存中
+
+grant [`find`](https://docs.mongodb.com/manual/reference/privilege-actions/#find) action for each database to back up.
+
+
+##### 整库备份
 
 ```shell
 [root@hjx01 data1]# mongodump -h 127.0.0.1:22000 -uroot -proot123 --authenticationDatabase=admin -d hjxdb -o /tmp/col
 ```
 
-#### 备份前检查
+##### 备份前检查
 
 ```shell
 [root@hjx01 ~]# mongo 127.0.0.1:22000/admin -uroot -proot123
@@ -269,7 +171,7 @@ userinfo
 zhuyuninfo
 ```
 
-#### 整库备份过程
+##### 整库备份过程
 
 ```shell
 [root@hjx01 data1]# mongodump -h 127.0.0.1:22000 -uroot -proot123 --authenticationDatabase=admin -d hjxdb -o /tmp/col
@@ -349,7 +251,7 @@ zhuyuninfo
 2017-12-20T10:24:16.625+0800	done dumping hjxdb.zhuyuninfo (5504974 documents)
 ```
 
-#### 查看备份文件
+##### 查看备份文件
 
 ```shell
 [root@hjx01 hjxdb]# ll
@@ -370,78 +272,11 @@ zhuyuninfo
 -rw-r--r--. 1 root root        88 12月 20 10:22 zhuyuninfo.metadata.json
 ```
 
-# 二、恢复
 
-### mongostore帮助
+### 逻辑备份恢复工具mongostore
 
-```shell
-[root@hjx01 ~]# mongorestore --help
-Usage:
-  mongorestore <options> <directory or file to restore>
 
-Restore backups generated with mongodump to a running server.
-
-Specify a database with -d to restore a single database from the target directory,
-or use -d and -c to restore a single collection from a single .bson file.
-
-See http://docs.mongodb.org/manual/reference/program/mongorestore/ for more information.
-
-general options:
-      --help                                      print usage
-      --version                                   print the tool version and exit
-
-verbosity options:
-  -v, --verbose=<level>                           more detailed log output (include multiple times for more verbosity, e.g. -vvvvv, or specify a numeric value, e.g. --verbose=N)
-      --quiet                                     hide all log output
-
-connection options:
-  -h, --host=<hostname>                           mongodb host to connect to (setname/host1,host2 for replica sets)
-      --port=<port>                               server port (can also use --host hostname:port)
-
-ssl options:
-      --ssl                                       connect to a mongod or mongos that has ssl enabled
-      --sslCAFile=<filename>                      the .pem file containing the root certificate chain from the certificate authority
-      --sslPEMKeyFile=<filename>                  the .pem file containing the certificate and key
-      --sslPEMKeyPassword=<password>              the password to decrypt the sslPEMKeyFile, if necessary
-      --sslCRLFile=<filename>                     the .pem file containing the certificate revocation list
-      --sslAllowInvalidCertificates               bypass the validation for server certificates
-      --sslAllowInvalidHostnames                  bypass the validation for server name
-      --sslFIPSMode                               use FIPS mode of the installed openssl library
-
-authentication options:
-  -u, --username=<username>                       username for authentication
-  -p, --password=<password>                       password for authentication
-      --authenticationDatabase=<database-name>    database that holds the user's credentials
-      --authenticationMechanism=<mechanism>       authentication mechanism to use
-
-namespace options:
-  -d, --db=<database-name>                        database to use
-  -c, --collection=<collection-name>              collection to use
-
-input options:
-      --objcheck                                  validate all objects before inserting
-      --oplogReplay                               replay oplog for point-in-time restore
-      --oplogLimit=<seconds>[:ordinal]            only include oplog entries before the provided Timestamp
-      --archive=<filename>                        restore dump from the specified archive file.  If flag is specified without a value, archive is read from stdin
-      --restoreDbUsersAndRoles                    restore user and role definitions for the given database
-      --dir=<directory-name>                      input directory, use '-' for stdin
-      --gzip                                      decompress gzipped input
-
-restore options:
-      --drop                                      drop each collection before import
-      --writeConcern=<write-concern>              write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}' (defaults to
-                                                  'majority')
-      --noIndexRestore                            don't restore indexes
-      --noOptionsRestore                          don't restore collection options
-      --keepIndexVersion                          don't update index version
-      --maintainInsertionOrder                    preserve order of documents during restoration
-  -j, --numParallelCollections=                   number of collections to restore in parallel (4 by default)
-      --numInsertionWorkersPerCollection=         number of insert operations to run concurrently per collection (1 by default)
-      --stopOnError                               stop restoring if an error is encountered on insert (off by default)
-      --bypassDocumentValidation                  bypass document validation
-```
-
-### mongorestore 语法
+#### mongorestore 语法
 
 ```shell
 [root@hjx01 ~]# mongorestore -h 127.0.0.1:22000 -u root -p root123 --authenticationDatabase=admin -d hjxdb2 --dir=/tmp/col/hjxdb/
