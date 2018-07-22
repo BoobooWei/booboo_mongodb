@@ -92,9 +92,9 @@ snapshot需要提前使用lvm，并挂接mongodb的数据目录使用，才可�
 3. 启服务
 
 
-### 逻辑备份工具mongodump
+## 逻辑备份工具mongodump
 
-#### 备份和恢复的权限说明
+### 备份和恢复的权限说明
 
 最小权限为backup和restore;认证数据库必须为admin
 
@@ -127,7 +127,7 @@ Successfully added user: {
 ```
 
 
-#### mongodump
+### mongodump命令
 
 通过一次查询获取当前服务器快照，并将快照写入磁盘中
 
@@ -136,9 +136,7 @@ Successfully added user: {
 grant [`find`](https://docs.mongodb.com/manual/reference/privilege-actions/#find) action for each database to back up.
 
 
-##### mongodump命令
-
-mongodump 
+#### mongodump常用参数
 
 * `-u` ：用户名
 * `-p` ：密码
@@ -147,8 +145,39 @@ mongodump
 * `-c` ：制定备份集合名
 * `-0` ：制定备份数据存放目录，不存在会自动创建
 
+#### mongodump备份的一般步骤
 
-#### mongodump练习
+1. fsync和lock保证备份过程中数据一致
+2. mongodump开始备份
+3. 解锁unlock
+
+说明：
+* fsync：强制服务器将所有缓冲区写入磁盘，保证运行时复制数据目录页不会损坏数据（物理备份数据目录，除了停服，还可以选择fsync）。
+* lock：只能读不能写
+
+```shell
+> use admin;  
+switched to db admin  
+> db.runCommand({"fsync" : 1, "lock" : 1});  
+{  
+        "info" : "now locked against writes, use db.fsyncUnlock() to unlock",  
+        "seeAlso" : "http://www.mongodb.org/display/DOCS/fsync+Command",  
+        "ok" : 1  
+} 
+```
+
+注意运行fsync命令需要在admin数据库下进行！通过执行上述命令，缓冲区内数据已经被写入磁盘数据库文件中，并且数据库此时无法执行写操作（写操作阻塞）！这样，我们可以很安全地备份数据目录了！备份后，我们通过下面的调用，来解锁：
+
+```shell
+> use admin;  
+switched to db admin  
+> db.$cmd.sys.unlock.findOne();  
+{ "ok" : 1, "info" : "unlock completed" }  
+> db.currentOp();  
+{ "inprog" : [ ] }  
+```
+
+### mongodump练习
 
 1. 备份单库test
 2. 导入数据时以覆盖的方式
