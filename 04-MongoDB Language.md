@@ -1045,7 +1045,11 @@ sort()方法基本语法如下所示：
 { "_id" : ObjectId("58abddf6c7d333637aa4bb3f"), "title" : "MySQL", "description" : "MySQL is the most popular Open Source SQL database management system", "by" : "uplooking", "url" : "http://www.mysql.com", "tags" : [ "mysql", "database" ], "likes" : 200 }
 ```
 
-## 各种不同类型的索引的创建与使用
+
+
+
+
+## 最基本的索引
 
 ### MongoDB 索引
 
@@ -1605,30 +1609,11 @@ WriteResult({ "nInserted" : 1 })
 * 但不能使用多键索引扫描寻找整个数组。相反，使用多键索引查找查询数组的第一个元素后，MongoDB检索
 * 相关文档并且过滤出那些复合匹配条件的文档。
 
-
-### 文本索引
-
-### 2dsphere索引
-
-### 2d索引
-
-### Hashed索引
-
-### 索引属性
-
-### 索引创建
-
-### 索引交集
-
-### 管理索引
-
-### 衡量索引的使用情况
-
-### 索引策略
+### 
 
 
 
-## 复杂的聚合查询
+
 
 ## 总结
 
@@ -1644,8 +1629,7 @@ WriteResult({ "nInserted" : 1 })
 | table joins  | [`$lookup`](https://docs.mongodb.com/manual/reference/operator/aggregation/lookup/#pipe._S_lookup), embedded documents | 表连接,MongoDB version 3.2. 开始支持 |
 | primary key  | primary key                                                  | 主键,MongoDB自动将_id字段设置为主键  |
 
-
-### 增删改查
+### 条件过滤
 
 | 操作       | 格式                   | 范例                                                | RDBMS中的类似语句              |
 | :--------- | :--------------------- | :-------------------------------------------------- | :----------------------------- |
@@ -1670,19 +1654,46 @@ WriteResult({ "nInserted" : 1 })
 | ---------------- | ----------------- | ----------------- | ----------------- |
 | 关系型没有此判断 | {filed:{$type:1}} | {filed:{$type:2}} | {filed:{$type:3}} |
 
-### 排序和限制
+### 查询高级用法
+
+| 高级用法     | 语法                                                         | 类似RMDB                                              |
+| ------------ | ------------------------------------------------------------ | ----------------------------------------------------- |
+| 指定返回的键 | `db.collection.find({},{filedA:1,filedB:1})`                 | `select A,B from tbname;`                             |
+| 排序         | `db.collection.find().order({filedA:1,filedB:-1})`           | `select * from tb order by A,B desc`                  |
+| 限制         | `db.collection.find().limit(1)`                              | `select * from tb limit 0,1`                          |
+| 逻辑与       | `db.collection.find({filedA:'xx',filedB:'xx'})`              | `select * from tb where A=xx and b=xx;`               |
+| 逻辑或       | `db.collection.find({$or:{filedA:'xx',filedB:'xx'}})`        | `select * from tb where A=xx or b=xx;`                |
+| 逻辑与或     | `db.collection.find({filedA:'xx',{$or:{filedB:'xx',filedC:'xx'}}})` | `select * from tb where A=xx and (B=xx or C=xx);`     |
+| 逻辑或与     | `db.collection.find({$or:{A:'xx',{B:'xx',C:'xx'}}})`         | `select * from tb where A=xx or (B=xx and C=xx);`     |
+| 取反         | `db.collection.find({filedA: {$not:{$mod:[5,1]}}})`          | `无`                                                  |
+| 包含         | `db.collection.find({filedA: {$in:[1,2,3]}})`                | `select * from tb where A in (1,2,3);`                |
+| 判断NULL     | `db.collection.find({filedA:{$in:[null],$exists:true}})`     | `select * from tb where A is null;  `                 |
+| 近似匹配     | `无`                                                         | `select * from tb where A like 'a%b';`                |
+| 正则匹配     | `db.collection.find({filedA:/^a.*b$/i)`                      | `select * from tb where A regexp '^a.*b$';`           |
+| 排序         | `db.collection.find().sort({filedA:-1})`                     | `select * from db order by A desc;`                   |
+| 数组         | `db.collection.find({filedA:'xx'})`                          | 查询数组中包含一个value                               |
+| `$all`       | `db.collection.find({filedA:{$all:[xx,yy]}})`                | 查询数组中同时包含多个value                           |
+| `$size`      | `db.collection.find({filedA:{$size:3}})`                     | 通过`$size`数组的长度来查询                           |
+| `$slice`     | `db.collection.find({},{$slice:-1})`                         | 通过`$slice`返回数组中的部分数据                      |
+|              | `db.collection.find({},{$slice:[23,28]})`                    | 左开右闭                                              |
+| 内嵌文档     | `db.collection.find({filedA.key1:x,filedA.key2:y})`          |                                                       |
+| `$eleMatch`  | `db.collection.find({filedA:{$elemMatch:{a:{$gt:1},b:{$ne:0}}}}` | `{filedA:[{a:x,b:y},{a:x,b:y}]}` 一行中多个键进行操作 |
+| `$where`     | `db.collection.find({$where:{this.filedA == this.filedB}})`  | `select * from tb where A=B;`                         |
+| 随机         | Math.random()                                                |                                                       |
+
+### 聚合查询
 
 | 对比 | MongoDB                                    | MySQL             |
 | ---- | ------------------------------------------ | ----------------- |
-| 排序 | db.test.find().order({filedA:1,filedB:-1}) | order by A,B desc |
-| 限制 | db.test.find().limit(1)                    | limit 0,1         |
-|      | db.test.find().skip(1)                     |                   |
+| 去重 | `db.collection.distinct('filedA')` | `select distinct A from tb;` |
+| 统计 | `db.collection.count()` | `select count(*) from tb;` |
+| 分组 | `db.runCommand({group:{}})` | `select min(A) from tb group by B;` |
 
-### 分组
+```shell
+# 分组比较难，此处不讲解。帮助文档：http://www.mongoing.com/docs/aggregation.html
+```
 
-| 对比 | MongoDB                                    | MySQL             |
-| ---- | ------------------------------------------ | ----------------- |
-| 分组 |  | group by col |
+
 
 ### 索引
 
@@ -1691,12 +1702,8 @@ WriteResult({ "nInserted" : 1 })
 | 单键索引 | `db.collection.createIndex({filed:1})`           | `db.test.createIndex({'username':1})`  |
 | 符合索引 | `db.collection.createIndex({filedA:1,filedB:1})` | `db.users.createIndex({name:1,age:1})` |
 
-多键索引
+```shell
+# 查看执行计划
+db.test.find({username:'user1234'}).explain('executionStats')
+```
 
-文本索引
-
-2dsphere索引
-
-2d索引
-
-Hashed索引
