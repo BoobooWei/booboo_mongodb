@@ -135,6 +135,16 @@ mongo --port 27017
 > db.system.users.remove({user:"myTester"})
 ```
 
+### 更新用户
+
+修改密码和角色
+
+```shell
+> use test
+> db.updateUser('myTester',{user:'myTester',pwd:'admin',roles:[{role:'read',db:'test'}]})  
+>
+```
+
 ## 权限
 
 ### 重点说明
