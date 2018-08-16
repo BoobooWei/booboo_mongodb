@@ -7,7 +7,7 @@ DIR=`pwd`
 DATE=`date +%Y%m%d%H%M%S`
 port=27017
 \mv /alidata/mongodb /alidata/mongodb.bak.$DATE &> /dev/null
-mkdir /alidata/{mongodb,install}
+mkdir /alidata/{mongodb,install} -p
 mkdir /alidata/mongodb/{data,log,conf}
 mkdir /alidata/mongodb/data/$port
 cd /alidata/install

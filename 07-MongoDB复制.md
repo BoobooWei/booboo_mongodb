@@ -1,4 +1,10 @@
-**概念：**
+# MongoDB 副本集
+
+> 2018-08-16 BoobooWei
+
+[MongoDB 副本集的原理、搭建、应用](https://www.cnblogs.com/zhoujinyi/p/3554010.html)
+
+## 概念
 
 ​      在了解了[这篇文章](http://www.cnblogs.com/zhoujinyi/p/3554196.html)之后，可以进行该篇文章的说明和测试。MongoDB 副本集（Replica Set）是有自动故障恢复功能的主从集群，有一个Primary节点和一个或多个Secondary节点组成。类似于MySQL的MMM架构。更多关于副本集的介绍请见[官网](http://docs.mongodb.org/manual/core/replication-introduction/)。也可以在google、baidu上查阅。
 
@@ -13,25 +19,63 @@
 
 ​      注意：在副本集的环境中，要是所有的Secondary都宕机了，只剩下Primary。最后Primary会变成Secondary，不能提供服务。
 
-**一：环境搭建**
+## 部署复制集
 
-**1：准备服务器**
+> 如何用3台已有的 [`mongod`](http://www.mongoing.com/docs/reference/program/mongod.html#bin.mongod) 实例来部署一个由三个节点组成的 [*复制集*](http://www.mongoing.com/docs/reference/glossary.html#term-replica-set) 
+
+### 概述
+
+由三个节点组成的 [*复制集*](http://www.mongoing.com/docs/reference/glossary.html#term-replica-set) 为网络故障或是其他的系统故障提供了足够的冗余。该复制集也有足够的分布式读操作的能力。复制集应该保持奇数个节点，这也就保证了 [*选举*](http://www.mongoing.com/docs/core/replica-set-elections.html) 可以正常的进行。参见 `复制集概览` 以获得更多有关复制集设计的信息。
+
+我们通常现从一个会成为复制集成员的 [`mongod`](http://www.mongoing.com/docs/reference/program/mongod.html#bin.mongod) 实例开始来配置复制集。然后为复制集新增实例。
+
+### 要求
+
+在生产环境的部署中，我们应该尽可能将复制集中得节点置于不同的机器上。当使用虚拟机的时候，我们应该将 [`mongod`](http://www.mongoing.com/docs/reference/program/mongod.html#bin.mongod) 实例置于拥有冗余电源和冗余网络的机器上。
+
+在我们部署复制集之前，我们必须在 [*复制集*](http://www.mongoing.com/docs/reference/glossary.html#term-replica-set) 的每个机器上安装MongoDB实例。如果我们还没安装MongoDB，请参考 [*安装指南*](http://www.mongoing.com/docs/installation.html#tutorial-installation) 。
+
+### 部署复制集的注意事项
+
+#### 架构
+
+在生产环境中，我们应该将每个节点部署在独立的机器上，并使用标准的MongoDB端口 `27017` 。使用 `bind_ip` 参数来限制访问MongoDB的应用程序的地址。
+
+> 准备服务器
 
 ```
-192.168.200.25
-
-192.168.200.245
-
-192.168.200.252
+10.200.6.30
+10.200.6.31
+10.200.6.33
 ```
 
-**2：安装**
+#### 连通性
+
+确保各个节点之间可以正常通讯，且各个客户端都处于安全的可信的网络环境中。可以考虑以下事项：
+
+- 建立虚拟的专用网络。确保各个节点之间的流量是在本地网络范围内路由的。（Establish a virtual private network. Ensure that your network topology routes all traffic between members within a single site over the local area network.）
+- Configure access control to prevent connections from unknown clients to the replica set.
+- 配置网络设置和防火墙规则来对将MongoDB的端口仅开放给应用程序，来让应用程序发的进出数据包可以与MongoDB正常交流。
+
+最后请确保复制集各节点可以互相通过DNS或是主机名解析。我们需要配置DNS域名或是设置 `/etc/hosts` 文件来配置。
+
+```shell
+10.200.6.30 sh_01
+10.200.6.31 sh_02
+10.200.6.33 am_01
+```
+
+### 安装MongoDB
+
+以下为安装脚本，下载到本地以后`bash install_mongodb.3.2.16.sh`
 
 ```
-http://www.cnblogs.com/zhoujinyi/archive/2013/06/02/3113868.html
+https://github.com/BoobooWei/booboo_mongodb/blob/master/scripts/install_mongodb.3.2.16.sh
 ```
 
-**3：修改配置，只需要开启：replSet 参数即可。格式为：**
+### 修改配置文件
+
+只需要开启：replSet 参数即可。格式为：
 
 ```
 192.168.200.252: --replSet = mmm/192.168.200.245:27017  # mmm是副本集的名称，192.168.200.25:27017 为实例的位子。

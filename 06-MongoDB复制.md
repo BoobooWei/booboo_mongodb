@@ -405,5 +405,6 @@ replication:
  oplogSizeMB: 20
 ##复制集名称
  replSetName: zhou1
+--replSet = mmm/192.168.200.245:27017  # mmm是副本集的名称，192.168.200.25:27017 为实例的位子。 
 ```
 
