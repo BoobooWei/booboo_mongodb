@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # 2017/12/15 Apple
 #Rotate the MongoDB logs to prevent a single logfile from consuming too much disk space.
 

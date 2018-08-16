@@ -1,4 +1,4 @@
-#!/bin/bash
+ï»¿#!/bin/bash
 # Intall Mongodb 3.2.16 Single
 # 2018-07-04 
 SRC_URI="http://zy-res.oss-cn-hangzhou.aliyuncs.com/mongodb/mongodb-linux-x86_64-rhel70-3.2.16.tgz"
@@ -20,13 +20,13 @@ rm -rf mongodb-linux-x86_64-rhel70-3.2.16
 if ! cat /etc/profile | grep 'export PATH=$PATH:/alidata/mongodb/bin' &> /dev/null;then
 	echo 'export PATH=$PATH:/alidata/mongodb/bin' >> /etc/profile
 fi
-# µ÷ÕûÄÚºË²ÎÊý 
-#1. ÄÚºË²ÎÊý/sys/kernel/mm/transparent_hugepage/enabled
-#2. ÄÚºË²ÎÊý/sys/kernel/mm/transparent_hugepage/defrag
+# è°ƒæ•´å†…æ ¸å‚æ•° 
+#1. å†…æ ¸å‚æ•°/sys/kernel/mm/transparent_hugepage/enabled
+#2. å†…æ ¸å‚æ•°/sys/kernel/mm/transparent_hugepage/defrag
 echo never > /sys/kernel/mm/transparent_hugepage/enabled
 echo never > /sys/kernel/mm/transparent_hugepage/defrag
 
-# ´´½¨µ¥ÊµÀýÅäÖÃÎÄ¼þ
+# åˆ›å»ºå•å®žä¾‹é…ç½®æ–‡ä»¶
 mem=`cat /proc/meminfo | grep MemTotal|sed 's/MemTotal:\s\{1,\}\([0-9]\{1,\}\) kB/\1/'`
 cache=`echo $mem | awk '{printf "%d",$1*6/10485760-1}'`
 
@@ -55,7 +55,7 @@ net:
 #security:
  #authorization: enabled  
 EOT
-# ·þÎñÆô¶¯½Å±¾
+# æœåŠ¡å¯åŠ¨è„šæœ¬
 cat > /alidata/mongodb/mongodb.server << ENDF
 #!/bin/bash
 start(){
