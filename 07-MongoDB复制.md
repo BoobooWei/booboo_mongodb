@@ -65,352 +65,340 @@
 10.200.6.33 am_01
 ```
 
-### 安装MongoDB
+### 详细步骤
+
+#### 安装MongoDB
 
 以下为安装脚本，下载到本地以后`bash install_mongodb.3.2.16.sh`
 
-```
-https://github.com/BoobooWei/booboo_mongodb/blob/master/scripts/install_mongodb.3.2.16.sh
+```shell
+$ curl -O 'https://raw.githubusercontent.com/BoobooWei/booboo_mongodb/master/scripts/install_mongodb.3.2.16.sh'
+$ bash install_mongodb.3.2.16.sh
 ```
 
-### 修改配置文件
+#### 修改配置文件
 
 只需要开启：replSet 参数即可。格式为：
 
+```shell
+replication:
+##oplog大小
+ oplogSizeMB: 20
+##复制集名称
+ replSetName: booboo
 ```
-192.168.200.252: --replSet = mmm/192.168.200.245:27017  # mmm是副本集的名称，192.168.200.25:27017 为实例的位子。
 
-192.168.200.245: --replSet = mmm/192.168.200.252:27017
+#### 启动服务
 
-192.168.200.25: --replSet = mmm/192.168.200.252:27017,192.168.200.245:27017 
+每一个节点都启动
+
+```shell
+mongodb.server start
 ```
 
-**4：启动**
+
 
 启动后会提示：
 
 ```
-replSet info you may need to run replSetInitiate -- rs.initiate() in the shell -- if that is not already done
+2018-08-16T17:57:46.700+0800 I REPL     [initandlisten] Did not find local voted for document at startup.
+2018-08-16T17:57:46.700+0800 I REPL     [initandlisten] Did not find local replica set configuration document at startup;  NoMatchingDocument: Did not find replica set configuration document in local.system.replset
+2018-08-16T17:57:46.700+0800 I NETWORK  [HostnameCanonicalizationWorker] Starting hostname canonicalization worker
+2018-08-16T17:57:46.701+0800 I FTDC     [initandlisten] Initializing full-time diagnostic data capture with directory '/alidata/mongodb/data/27017/diagnostic.data'
+2018-08-16T17:57:46.701+0800 I NETWORK  [initandlisten] waiting for connections on port 27017
 ```
 
 说明需要进行初始化操作，初始化操作只能执行一次。
 
-**5：初始化副本集**
+#### 初始化副本集
 
 登入任意一台机器的MongoDB执行：因为是全新的副本集所以可以任意进入一台执行；要是有一台有数据，则需要在有数据上执行；要多台有数据则不能初始化。
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-zhoujy@zhoujy:~$ mongo --host=192.168.200.252
-MongoDB shell version: 2.4.6
-connecting to: 192.168.200.252:27017/test
-> rs.initiate({"_id":"mmm","members":[
-... {"_id":1,
-... "host":"192.168.200.252:27017",
-... "priority":1
-... },
-... {"_id":2,
-... "host":"192.168.200.245:27017",
-... "priority":1
-... }
-... ]})
+```shell
+> rs.initiate()
 {
-    "info" : "Config now saved locally.  Should come online in about a minute.",
-    "ok" : 1
+	"info2" : "no configuration specified. Using a default configuration for the set",
+	"me" : "sh_01:27017",
+	"ok" : 1
 }
-######
-"_id": 副本集的名称
-"members": 副本集的服务器列表
-"_id": 服务器的唯一ID
-"host": 服务器主机
-"priority": 是优先级，默认为1，优先级0为被动节点，不能成为活跃节点。优先级不位0则按照有大到小选出活跃节点。
-"arbiterOnly": 仲裁节点，只参与投票，不接收数据，也不能成为活跃节点。
-
-> rs.status()
+# 执行初始化后看到前缀发生了变化
+booboo:PRIMARY> rs.config()
 {
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T04:03:53Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 76,
-            "optime" : Timestamp(1392696191, 1),
-            "optimeDate" : ISODate("2014-02-18T04:03:11Z"),
-            "self" : true
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 35,
-            "optime" : Timestamp(1392696191, 1),
-            "optimeDate" : ISODate("2014-02-18T04:03:11Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T04:03:52Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T04:03:53Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        }
-    ],
-    "ok" : 1
+	"_id" : "booboo",
+	"version" : 1,
+	"protocolVersion" : NumberLong(1),
+	"members" : [
+		{
+			"_id" : 0,
+			"host" : "sh_01:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		}
+	],
+	"settings" : {
+		"chainingAllowed" : true,
+		"heartbeatIntervalMillis" : 2000,
+		"heartbeatTimeoutSecs" : 10,
+		"electionTimeoutMillis" : 10000,
+		"getLastErrorModes" : {
+			
+		},
+		"getLastErrorDefaults" : {
+			"w" : 1,
+			"wtimeout" : 0
+		},
+		"replicaSetId" : ObjectId("5b754da04c30f36bbab72366")
+	}
 }
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+
+
+* "_id": 副本集的名称
+* "members": 副本集的服务器列表
+* "_id": 服务器的唯一ID
+* "host": 服务器主机
+* "priority": 是优先级，默认为1，优先级0为被动节点，不能成为活跃节点。优先级不位0则按照有大到小选出活跃节点。
+* "arbiterOnly": 仲裁节点，只参与投票，不接收数据，也不能成为活跃节点。
+
+#### 添加副本集节点
+
+添加节点的命令如下：
+
+```shell
+rs.add()
+```
+
+执行操作
+
+```shell
+booboo:PRIMARY> rs.add('sh_02:27017')
+{ "ok" : 1 }
+booboo:PRIMARY> rs.add('am_01:27017')
+{ "ok" : 1 }
+booboo:PRIMARY> rs.config()
+{
+	"_id" : "booboo",
+	"version" : 3,
+	"protocolVersion" : NumberLong(1),
+	"members" : [
+		{
+			"_id" : 0,
+			"host" : "sh_01:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		},
+		{
+			"_id" : 1,
+			"host" : "sh_02:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		},
+		{
+			"_id" : 2,
+			"host" : "am_01:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		}
+	],
+	"settings" : {
+		"chainingAllowed" : true,
+		"heartbeatIntervalMillis" : 2000,
+		"heartbeatTimeoutSecs" : 10,
+		"electionTimeoutMillis" : 10000,
+		"getLastErrorModes" : {
+			
+		},
+		"getLastErrorDefaults" : {
+			"w" : 1,
+			"wtimeout" : 0
+		},
+		"replicaSetId" : ObjectId("5b754da04c30f36bbab72366")
+	}
+}
+```
+
+
 
 **6：日志**
 
 查看252上的日志：
 
 ```
-Tue Feb 18 12:03:29.334 [rsMgr] replSet PRIMARY
-…………
-…………
-Tue Feb 18 12:03:40.341 [rsHealthPoll] replSet member 192.168.200.245:27017 is now in state SECONDARY
+2018-08-16T18:16:48.547+0800 I REPL     [ReplicationExecutor] New replica set config in use: { _id: "booboo", version: 3, protocolVersion: 1, members: [ { _id: 0, host: "sh_01:27017", arbiterOnly: false, buildIndexes: true, hidden: false, priority: 1.0, tags: {}, slaveDelay: 0, votes: 1 }, { _id: 1, host: "sh_02:27017", arbiterOnly: false, buildIndexes: true, hidden: false, priority: 1.0, tags: {}, slaveDelay: 0, votes: 1 }, { _id: 2, host: "am_01:27017", arbiterOnly: false, buildIndexes: true, hidden: false, priority: 1.0, tags: {}, slaveDelay: 0, votes: 1 } ], settings: { chainingAllowed: true, heartbeatIntervalMillis: 2000, heartbeatTimeoutSecs: 10, electionTimeoutMillis: 10000, getLastErrorModes: {}, getLastErrorDefaults: { w: 1, wtimeout: 0 }, replicaSetId: ObjectId('5b754da04c30f36bbab72366') } }
+2018-08-16T18:16:48.548+0800 I REPL     [ReplicationExecutor] This node is sh_01:27017 in the config
+
+2018-08-16T18:16:50.555+0800 I REPL     [ReplicationExecutor] Member am_01:27017 is now in state STARTUP2
+2018-08-16T18:16:54.557+0800 I REPL     [ReplicationExecutor] Member am_01:27017 is now in state SECONDARY
 ```
 
 至此，整个副本集已经搭建成功了。
 
-上面的的副本集只有2台服务器，还有一台怎么添加？除了在初始化的时候添加，还有什么方法可以后期增删节点？
-**二：维护操作**
+查看副本集状态
 
-**1：增删节点。**
+```shell
+booboo:PRIMARY> rs.status()
+{
+	"set" : "booboo",
+	"date" : ISODate("2018-08-16T10:58:14.036Z"),
+	"myState" : 1,
+	"term" : NumberLong(1),
+	"heartbeatIntervalMillis" : NumberLong(2000),
+	"members" : [
+		{
+			"_id" : 0,
+			"name" : "sh_01:27017",
+			"health" : 1,
+			"state" : 1,
+			"stateStr" : "PRIMARY",
+			"uptime" : 3628,
+			"optime" : {
+				"ts" : Timestamp(1534414608, 1),
+				"t" : NumberLong(1)
+			},
+			"optimeDate" : ISODate("2018-08-16T10:16:48Z"),
+			"electionTime" : Timestamp(1534414240, 2),
+			"electionDate" : ISODate("2018-08-16T10:10:40Z"),
+			"configVersion" : 3,
+			"self" : true
+		},
+		{
+			"_id" : 1,
+			"name" : "sh_02:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 2492,
+			"optime" : {
+				"ts" : Timestamp(1534414608, 1),
+				"t" : NumberLong(1)
+			},
+			"optimeDate" : ISODate("2018-08-16T10:16:48Z"),
+			"lastHeartbeat" : ISODate("2018-08-16T10:58:12.645Z"),
+			"lastHeartbeatRecv" : ISODate("2018-08-16T10:58:12.325Z"),
+			"pingMs" : NumberLong(0),
+			"syncingTo" : "sh_01:27017",
+			"configVersion" : 3
+		},
+		{
+			"_id" : 2,
+			"name" : "am_01:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 2485,
+			"optime" : {
+				"ts" : Timestamp(1534414608, 1),
+				"t" : NumberLong(1)
+			},
+			"optimeDate" : ISODate("2018-08-16T10:16:48Z"),
+			"lastHeartbeat" : ISODate("2018-08-16T10:58:12.580Z"),
+			"lastHeartbeatRecv" : ISODate("2018-08-16T10:58:09.477Z"),
+			"pingMs" : NumberLong(0),
+			"configVersion" : 3
+		}
+	],
+	"ok" : 1
+}
+```
 
-把25服务加入到副本集中：
 
-**rs.add("192.168.200.25:27017")**
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+#### 删副本集节点
+
+> 删除sh_02节点
 
 ```
-mmm:PRIMARY> rs.add("192.168.200.25:27017")
+rs.remove()
+```
+
+操作明细
+
+```
+booboo:PRIMARY> rs.remove('sh_02:27017')
 { "ok" : 1 }
-mmm:PRIMARY> rs.status()
+booboo:PRIMARY> rs.status()
 {
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T04:53:00Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 3023,
-            "optime" : Timestamp(1392699177, 1),
-            "optimeDate" : ISODate("2014-02-18T04:52:57Z"),
-            "self" : true
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 2982,
-            "optime" : Timestamp(1392699177, 1),
-            "optimeDate" : ISODate("2014-02-18T04:52:57Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T04:52:59Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T04:53:00Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 6,
-            "stateStr" : "UNKNOWN",             #等一会就变成了 SECONDARY 
-            "uptime" : 3,
-            "optime" : Timestamp(0, 0),
-            "optimeDate" : ISODate("1970-01-01T00:00:00Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T04:52:59Z"),
-            "lastHeartbeatRecv" : ISODate("1970-01-01T00:00:00Z"),
-            "pingMs" : 0,
-            "lastHeartbeatMessage" : "still initializing"
-        }
-    ],
-    "ok" : 1
+	"set" : "booboo",
+	"date" : ISODate("2018-08-16T11:06:03.031Z"),
+	"myState" : 1,
+	"term" : NumberLong(1),
+	"heartbeatIntervalMillis" : NumberLong(2000),
+	"members" : [
+		{
+			"_id" : 0,
+			"name" : "sh_01:27017",
+			"health" : 1,
+			"state" : 1,
+			"stateStr" : "PRIMARY",
+			"uptime" : 4097,
+			"optime" : {
+				"ts" : Timestamp(1534417560, 1),
+				"t" : NumberLong(1)
+			},
+			"optimeDate" : ISODate("2018-08-16T11:06:00Z"),
+			"electionTime" : Timestamp(1534414240, 2),
+			"electionDate" : ISODate("2018-08-16T10:10:40Z"),
+			"configVersion" : 4,
+			"self" : true
+		},
+		{
+			"_id" : 2,
+			"name" : "am_01:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 2954,
+			"optime" : {
+				"ts" : Timestamp(1534417560, 1),
+				"t" : NumberLong(1)
+			},
+			"optimeDate" : ISODate("2018-08-16T11:06:00Z"),
+			"lastHeartbeat" : ISODate("2018-08-16T11:06:02.598Z"),
+			"lastHeartbeatRecv" : ISODate("2018-08-16T11:06:00.609Z"),
+			"pingMs" : NumberLong(0),
+			"syncingTo" : "sh_01:27017",
+			"configVersion" : 4
+		}
+	],
+	"ok" : 1
 }
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-把25服务从副本集中删除：
-
-**rs.remove("192.168.200.25:27017")**
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
 
 ```
-mmm:PRIMARY> rs.remove("192.168.200.25:27017")
-Tue Feb 18 13:01:09.298 DBClientCursor::init call() failed
-Tue Feb 18 13:01:09.299 Error: error doing query: failed at src/mongo/shell/query.js:78
-Tue Feb 18 13:01:09.300 trying reconnect to 192.168.200.252:27017
-Tue Feb 18 13:01:09.301 reconnect 192.168.200.252:27017 ok
-mmm:PRIMARY> rs.status()
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T05:01:19Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 3522,
-            "optime" : Timestamp(1392699669, 1),
-            "optimeDate" : ISODate("2014-02-18T05:01:09Z"),
-            "self" : true
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 10,
-            "optime" : Timestamp(1392699669, 1),
-            "optimeDate" : ISODate("2014-02-18T05:01:09Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:01:19Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:01:18Z"),
-            "pingMs" : 0,
-            "lastHeartbeatMessage" : "syncing to: 192.168.200.252:27017",
-            "syncingTo" : "192.168.200.252:27017"
-        }
-    ],
-    "ok" : 1
-}
-```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+sh_02的节点已经被移除。
 
-192.168.200.25 的节点已经被移除。
+再将sh_02加回来`rs.add('sh_02:27017')`
 
-**2：查看复制的情况**
-
- **db.printSlaveReplicationInfo()**
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-mmm:PRIMARY> db.printSlaveReplicationInfo()
-source:   192.168.200.245:27017
-     syncedTo: Tue Feb 18 2014 13:02:35 GMT+0800 (CST)
-         = 145 secs ago (0.04hrs)
-source:   192.168.200.25:27017
-     syncedTo: Tue Feb 18 2014 13:02:35 GMT+0800 (CST)
-         = 145 secs ago (0.04hrs)
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-source：从库的ip和端口。
-
-syncedTo：目前的同步情况，以及最后一次同步的时间。
-
-从上面可以看出，在数据库内容不变的情况下他是不同步的，数据库变动就会马上同步。
-
-**3：查看副本集的状态**
-
-**rs.status()**
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-mmm:PRIMARY> rs.status()
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T05:12:28Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 4191,
-            "optime" : Timestamp(1392699755, 1),
-            "optimeDate" : ISODate("2014-02-18T05:02:35Z"),
-            "self" : true
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 679,
-            "optime" : Timestamp(1392699755, 1),
-            "optimeDate" : ISODate("2014-02-18T05:02:35Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:12:27Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:12:27Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 593,
-            "optime" : Timestamp(1392699755, 1),
-            "optimeDate" : ISODate("2014-02-18T05:02:35Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:12:28Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:12:28Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        }
-    ],
-    "ok" : 1
-}
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-**4:副本集的配置**
-
-**rs.conf()/rs.config()**
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-mmm:PRIMARY> rs.conf()
-{
-    "_id" : "mmm",
-    "version" : 4,
-    "members" : [
-        {
-            "_id" : 1,
-            "host" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 2,
-            "host" : "192.168.200.245:27017"
-        },
-        {
-            "_id" : 3,
-            "host" : "192.168.200.25:27017"
-        }
-    ]
-}
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-**5：操作Secondary**
+#### 操作Secondary
 
 默认情况下，Secondary是不提供服务的，即不能读和写。会提示：
 error: { "$err" : "not master and slaveOk=false", "code" : 13435 }
@@ -419,233 +407,353 @@ error: { "$err" : "not master and slaveOk=false", "code" : 13435 }
 **rs.slaveOk() ，只对当前连接有效。**
 
 ```
-mmm:SECONDARY> db.test.find()
-error: { "$err" : "not master and slaveOk=false", "code" : 13435 }
-mmm:SECONDARY> rs.slaveOk()
-mmm:SECONDARY> db.test.find()
-{ "_id" : ObjectId("5302edfa8c9151a5013b978e"), "a" : 1 }
+booboo:SECONDARY> db.t1.find().limit(1)
+Error: error: { "ok" : 0, "errmsg" : "not master and slaveOk=false", "code" : 13435 }
+booboo:SECONDARY> rs.slaveOk()
+booboo:SECONDARY> db.t1.find().limit(1)
+{ "_id" : ObjectId("5b5ebb6796b8b74a73ee30f6"), "a" : 1, "b" : 2 }
 ```
 
-**6：更新ing**
+## 测试副本集功能
 
- 
+当前副本集状态如下：
 
-**三：测试**
+```shell
+rs.config()
+{
+	"_id" : "booboo",
+	"version" : 11,
+	"protocolVersion" : NumberLong(1),
+	"members" : [
+		{
+			"_id" : 2,
+			"host" : "am_01:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		},
+		{
+			"_id" : 3,
+			"host" : "sh_01:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		},
+		{
+			"_id" : 4,
+			"host" : "sh_02:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		}
+	],
+	"settings" : {
+		"chainingAllowed" : true,
+		"heartbeatIntervalMillis" : 2000,
+		"heartbeatTimeoutSecs" : 10,
+		"electionTimeoutMillis" : 10000,
+		"getLastErrorModes" : {
+			
+		},
+		"getLastErrorDefaults" : {
+			"w" : 1,
+			"wtimeout" : 0
+		},
+		"replicaSetId" : ObjectId("5b754da04c30f36bbab72366")
+	}
+}
+booboo:PRIMARY> rs.status()
+{
+	"set" : "booboo",
+	"date" : ISODate("2018-08-16T11:43:24.447Z"),
+	"myState" : 1,
+	"term" : NumberLong(8),
+	"heartbeatIntervalMillis" : NumberLong(2000),
+	"members" : [
+		{
+			"_id" : 2,
+			"name" : "am_01:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 270,
+			"optime" : {
+				"ts" : Timestamp(1534419549, 1),
+				"t" : NumberLong(8)
+			},
+			"optimeDate" : ISODate("2018-08-16T11:39:09Z"),
+			"lastHeartbeat" : ISODate("2018-08-16T11:43:22.722Z"),
+			"lastHeartbeatRecv" : ISODate("2018-08-16T11:43:22.702Z"),
+			"pingMs" : NumberLong(0),
+			"syncingTo" : "sh_02:27017",
+			"configVersion" : 11
+		},
+		{
+			"_id" : 3,
+			"name" : "sh_01:27017",
+			"health" : 1,
+			"state" : 1,
+			"stateStr" : "PRIMARY",
+			"uptime" : 286,
+			"optime" : {
+				"ts" : Timestamp(1534419549, 1),
+				"t" : NumberLong(8)
+			},
+			"optimeDate" : ISODate("2018-08-16T11:39:09Z"),
+			"electionTime" : Timestamp(1534419548, 1),
+			"electionDate" : ISODate("2018-08-16T11:39:08Z"),
+			"configVersion" : 11,
+			"self" : true
+		},
+		{
+			"_id" : 4,
+			"name" : "sh_02:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 275,
+			"optime" : {
+				"ts" : Timestamp(1534419549, 1),
+				"t" : NumberLong(8)
+			},
+			"optimeDate" : ISODate("2018-08-16T11:39:09Z"),
+			"lastHeartbeat" : ISODate("2018-08-16T11:43:22.733Z"),
+			"lastHeartbeatRecv" : ISODate("2018-08-16T11:43:22.768Z"),
+			"pingMs" : NumberLong(0),
+			"syncingTo" : "sh_01:27017",
+			"configVersion" : 11
+		}
+	],
+	"ok" : 1
+}
+```
 
-**1：测试副本集数据复制功能**
+### 测试副本集数据复制功能
 
-在Primary（192.168.200.252:27017）上插入数据：
+在Primary上插入数据：
 
 ```
-mmm:PRIMARY> for(var i=0;i<10000;i++){db.test.insert({"name":"test"+i,"age":123})}
-mmm:PRIMARY> db.test.count()
-10001
+booboo:PRIMARY> use test
+switched to db test
+booboo:PRIMARY> db.superman.insert({name:'jack',age:12})
+WriteResult({ "nInserted" : 1 })
+booboo:PRIMARY> db.superman.find({name:/a/i})
+{ "_id" : ObjectId("5b755ff853976480e26b04c8"), "name" : "jack", "age" : 12 }
 ```
 
 在Secondary上查看是否已经同步：
 
 ```
-mmm:SECONDARY> rs.slaveOk()
-mmm:SECONDARY> db.test.count()
-10001
+booboo:SECONDARY> db.superman.find().limit(1)
+{ "_id" : ObjectId("5b755ff853976480e26b04c8"), "name" : "jack", "age" : 12 }
 ```
 
 数据已经同步。
 
-**2：测试副本集故障转移功能**
+### 测试优先级更改功能
+
+将sh_01的优先级改为0.5
+
+```shell
+booboo:PRIMARY> cfg = rs.config()
+booboo:PRIMARY> cfg.members[1].priority = 2
+booboo:PRIMARY> rs.reconfig(cfg)
+```
+
+更改优先级后
+
+```shell
+rs.config()
+{
+	"_id" : "booboo",
+	"version" : 11,
+	"protocolVersion" : NumberLong(1),
+	"members" : [
+		{
+			"_id" : 2,
+			"host" : "am_01:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		},
+		{
+			"_id" : 3,
+			"host" : "sh_01:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 2,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		},
+		{
+			"_id" : 4,
+			"host" : "sh_02:27017",
+			"arbiterOnly" : false,
+			"buildIndexes" : true,
+			"hidden" : false,
+			"priority" : 1,
+			"tags" : {
+				
+			},
+			"slaveDelay" : NumberLong(0),
+			"votes" : 1
+		}
+	],
+	"settings" : {
+		"chainingAllowed" : true,
+		"heartbeatIntervalMillis" : 2000,
+		"heartbeatTimeoutSecs" : 10,
+		"electionTimeoutMillis" : 10000,
+		"getLastErrorModes" : {
+			
+		},
+		"getLastErrorDefaults" : {
+			"w" : 1,
+			"wtimeout" : 0
+		},
+		"replicaSetId" : ObjectId("5b754da04c30f36bbab72366")
+	}
+}
+```
+
+### 测试副本集故障转移功能
 
 关闭Primary节点，查看其他2个节点的情况：
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
 ```
-mmm:PRIMARY> rs.status()
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T05:38:54Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 5777,
-            "optime" : Timestamp(1392701576, 2678),
-            "optimeDate" : ISODate("2014-02-18T05:32:56Z"),
-            "self" : true
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 2265,
-            "optime" : Timestamp(1392701576, 2678),
-            "optimeDate" : ISODate("2014-02-18T05:32:56Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:38:54Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:38:53Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 2179,
-            "optime" : Timestamp(1392701576, 2678),
-            "optimeDate" : ISODate("2014-02-18T05:32:56Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:38:54Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:38:53Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        }
-    ],
-    "ok" : 1
-}
+[root@sh_01 ~]# mongodb.server stop
+killing process with pid: 650
+```
 
-#关闭
-mmm:PRIMARY> use admin
+看到sh_02已经从 SECONDARY 变成了 PRIMARY。具体的信息可以通过日志文件得知。继续操作：
+
+```shell
+booboo:SECONDARY> use admin
 switched to db admin
-mmm:PRIMARY> db.shutdownServer()
+booboo:PRIMARY> use test
+switched to db test
+```
 
-#进入任意一台：
-mmm:SECONDARY> rs.status()
+查看副本集状态
+
+```
+booboo:SECONDARY> use admin
+switched to db admin
+booboo:PRIMARY> use test
+switched to db test
+booboo:PRIMARY> rs.status()
 {
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T05:47:41Z"),
-    "myState" : 2,
-    "syncingTo" : "192.168.200.25:27017",
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 0,
-            "state" : 8,
-            "stateStr" : "(not reachable/healthy)",
-            "uptime" : 0,
-            "optime" : Timestamp(1392701576, 2678),
-            "optimeDate" : ISODate("2014-02-18T05:32:56Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:47:40Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:45:57Z"),
-            "pingMs" : 0
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 5888,
-            "optime" : Timestamp(1392701576, 2678),
-            "optimeDate" : ISODate("2014-02-18T05:32:56Z"),
-            "errmsg" : "syncing to: 192.168.200.25:27017",
-            "self" : true
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 2292,
-            "optime" : Timestamp(1392701576, 2678),
-            "optimeDate" : ISODate("2014-02-18T05:32:56Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:47:40Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:47:39Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        }
-    ],
-    "ok" : 1
+	"set" : "booboo",
+	"date" : ISODate("2018-08-16T11:47:30.019Z"),
+	"myState" : 1,
+	"term" : NumberLong(9),
+	"heartbeatIntervalMillis" : NumberLong(2000),
+	"members" : [
+		{
+			"_id" : 2,
+			"name" : "am_01:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 513,
+			"optime" : {
+				"ts" : Timestamp(1534420009, 1),
+				"t" : NumberLong(9)
+			},
+			"optimeDate" : ISODate("2018-08-16T11:46:49Z"),
+			"lastHeartbeat" : ISODate("2018-08-16T11:47:29.020Z"),
+			"lastHeartbeatRecv" : ISODate("2018-08-16T11:47:28.720Z"),
+			"pingMs" : NumberLong(0),
+			"syncingTo" : "sh_02:27017",
+			"configVersion" : 11
+		},
+		{
+			"_id" : 3,
+			"name" : "sh_01:27017",
+			"health" : 0,
+			"state" : 8,
+			"stateStr" : "(not reachable/healthy)",
+			"uptime" : 0,
+			"optime" : {
+				"ts" : Timestamp(0, 0),
+				"t" : NumberLong(-1)
+			},
+			"optimeDate" : ISODate("1970-01-01T00:00:00Z"),
+			"lastHeartbeat" : ISODate("2018-08-16T11:47:29.086Z"),
+			"lastHeartbeatRecv" : ISODate("2018-08-16T11:46:38.901Z"),
+			"pingMs" : NumberLong(0),
+			"lastHeartbeatMessage" : "Connection refused",
+			"configVersion" : -1
+		},
+		{
+			"_id" : 4,
+			"name" : "sh_02:27017",
+			"health" : 1,
+			"state" : 1,
+			"stateStr" : "PRIMARY",
+			"uptime" : 524,
+			"optime" : {
+				"ts" : Timestamp(1534420009, 1),
+				"t" : NumberLong(9)
+			},
+			"optimeDate" : ISODate("2018-08-16T11:46:49Z"),
+			"infoMessage" : "could not find member to sync from",
+			"electionTime" : Timestamp(1534420008, 1),
+			"electionDate" : ISODate("2018-08-16T11:46:48Z"),
+			"configVersion" : 11,
+			"self" : true
+		}
+	],
+	"ok" : 1
 }
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-看到192.168.200.25:27017 已经从 SECONDARY 变成了 PRIMARY。具体的信息可以通过日志文件得知。继续操作：
-
-在新主上插入：
+重新启动sh_01，由于其优先级别最高，所以会重新选举primary为sh_01
 
 ```
-mmm:PRIMARY> for(var i=0;i<10000;i++){db.test.insert({"name":"test"+i,"age":123})}
-mmm:PRIMARY> db.test.count()
-20001
+[root@sh_01 ~]# mongodb.server start
+[root@sh_01 ~]# mongo
+MongoDB shell version: 3.2.16
+connecting to: test
+Server has startup warnings: 
+2018-08-16T19:48:53.817+0800 I CONTROL  [initandlisten] ** WARNING: You are running this process as the root user, which is not recommended.
+2018-08-16T19:48:53.817+0800 I CONTROL  [initandlisten] 
+booboo:SECONDARY> use test
+switched to db test
+booboo:SECONDARY> use test
+switched to db test
+booboo:PRIMARY> 
 ```
 
-重启启动之前关闭的192.168.200.252:27017
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-mmm:SECONDARY> rs.status()
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T05:45:14Z"),
-    "myState" : 2,
-    "syncingTo" : "192.168.200.245:27017",
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 12,
-            "optime" : Timestamp(1392702168, 8187),
-            "optimeDate" : ISODate("2014-02-18T05:42:48Z"),
-            "errmsg" : "syncing to: 192.168.200.245:27017",
-            "self" : true
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 11,
-            "optime" : Timestamp(1392702168, 8187),
-            "optimeDate" : ISODate("2014-02-18T05:42:48Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:45:13Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:45:12Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.25:27017"
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 9,
-            "optime" : Timestamp(1392702168, 8187),
-            "optimeDate" : ISODate("2014-02-18T05:42:48Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T05:45:13Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T05:45:13Z"),
-            "pingMs" : 0
-        }
-    ],
-    "ok" : 1
-}
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-启动之前的主，发现其变成了SECONDARY，在新主插入的数据，是否已经同步：
-
-```
-mmm:SECONDARY> db.test.count()
-Tue Feb 18 13:47:03.634 count failed: { "note" : "from execCommand", "ok" : 0, "errmsg" : "not master" } at src/mongo/shell/query.js:180
-mmm:SECONDARY> rs.slaveOk()
-mmm:SECONDARY> db.test.count()
-20001
-```
-
-已经同步。
 
 **注意**：
 
@@ -655,442 +763,86 @@ mmm:SECONDARY> db.test.count()
 
 官方推荐的**最小的副本集也应该具备一个primary节点和两个secondary节点。两个节点的副本集不具备真正的故障转移能力。**
 
-**四：应用**
+## 副本集应用
 
-**1：手动切换Primary节点到自己给定的节点**
-上面已经提到过了优先集priority，因为默认的都是1，所以只需要把给定的服务器的priority加到最大即可。让245 成为主节点，操作如下：
+修改rs.config()中的相应value即可达到目的：
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+| 副本集应用 | 说明 | 方法                                                 |
+| ---------- | ---- | ------------- |
+|[*修改复制集节点的优先级*](http://www.mongoing.com/docs/tutorial/adjust-replica-set-member-priority.html) |修改复制集节点在选举中的优先级|`cfg.members[0].priority = 0.5`|
+|[*禁止从节点升职为主节点*](http://www.mongoing.com/docs/tutorial/configure-secondary-only-replica-set-member.html)|防止从节点在选举中升职为主节点| `cfg.members[1].priority = 0` |
+|[*配置一个隐藏节点*](http://www.mongoing.com/docs/tutorial/configure-a-hidden-replica-set-member.html)|将从节点设置为应用程序不可见来用其提供特殊需求，如备份等| `cfg.members[0].priority = 0;cfg.members[0].hidden = true` |
+|[*配置一个延时复制节点*](http://www.mongoing.com/docs/tutorial/configure-a-delayed-replica-set-member.html)|将从节点设置为延时复制节点，来提高数据安全性| `cfg.members[0].priority = 0;cfg.members[0].hidden = true;cfg.members[0].slaveDelay = 3600` |
+|[*配置一个不参与投票的节点*](http://www.mongoing.com/docs/tutorial/configure-a-non-voting-replica-set-member.html)|配置一个拥有数据但是不可进行投票的从节点| `cfg.members[3].votes = 0` |
+|[*将从节点转换为投票节点*](http://www.mongoing.com/docs/tutorial/convert-secondary-into-arbiter.html)|将一个从节点变为投票节点| |
 
-```
-mmm:PRIMARY> rs.conf() #查看配置
-{
-    "_id" : "mmm",
-    "version" : 6,  #每改变一次集群的配置，副本集的version都会加1。
-    "members" : [
-        {
-            "_id" : 1,
-            "host" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 2,
-            "host" : "192.168.200.245:27017"
-        },
-        {
-            "_id" : 3,
-            "host" : "192.168.200.25:27017"
-        }
-    ]
-}
-mmm:PRIMARY> rs.status() #查看状态
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T07:25:51Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 47,
-            "optime" : Timestamp(1392708304, 1),
-            "optimeDate" : ISODate("2014-02-18T07:25:04Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T07:25:50Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T07:25:50Z"),
-            "pingMs" : 0,
-            "lastHeartbeatMessage" : "syncing to: 192.168.200.25:27017",
-            "syncingTo" : "192.168.200.25:27017"
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 47,
-            "optime" : Timestamp(1392708304, 1),
-            "optimeDate" : ISODate("2014-02-18T07:25:04Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T07:25:50Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T07:25:51Z"),
-            "pingMs" : 0,
-            "lastHeartbeatMessage" : "syncing to: 192.168.200.25:27017",
-            "syncingTo" : "192.168.200.25:27017"
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 13019,
-            "optime" : Timestamp(1392708304, 1),
-            "optimeDate" : ISODate("2014-02-18T07:25:04Z"),
-            "self" : true
-        }
-    ],
-    "ok" : 1
-}
-mmm:PRIMARY> cfg=rs.conf() #
-{
-    "_id" : "mmm",
-    "version" : 4,
-    "members" : [
-        {
-            "_id" : 1,
-            "host" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 2,
-            "host" : "192.168.200.245:27017"
-        },
-        {
-            "_id" : 3,
-            "host" : "192.168.200.25:27017"
-        }
-    ]
-}
-mmm:PRIMARY> cfg.members[1].priority=2  #修改priority
-2
-mmm:PRIMARY> rs.reconfig(cfg) #重新加载配置文件，强制了副本集进行一次选举，优先级高的成为Primary。在这之间整个集群的所有节点都是secondary
+### 修改复制集节点的优先级
 
-mmm:SECONDARY> rs.status()
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T07:27:38Z"),
-    "myState" : 2,
-    "syncingTo" : "192.168.200.245:27017",
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 71,
-            "optime" : Timestamp(1392708387, 1),
-            "optimeDate" : ISODate("2014-02-18T07:26:27Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T07:27:37Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T07:27:38Z"),
-            "pingMs" : 0,
-            "lastHeartbeatMessage" : "syncing to: 192.168.200.245:27017",
-            "syncingTo" : "192.168.200.245:27017"
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 71,
-            "optime" : Timestamp(1392708387, 1),
-            "optimeDate" : ISODate("2014-02-18T07:26:27Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T07:27:37Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T07:27:38Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.25:27017"
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 13126,
-            "optime" : Timestamp(1392708387, 1),
-            "optimeDate" : ISODate("2014-02-18T07:26:27Z"),
-            "errmsg" : "syncing to: 192.168.200.245:27017",
-            "self" : true
-        }
-    ],
-    "ok" : 1
-}
+```shell
+# 修改复制集节点的优先级
+cfg = rs.conf()
+cfg.members[0].priority = 0.5
+rs.reconfig(cfg)
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+### 禁止从节点升职为主节点
 
-这样，给定的245服务器就成为了主节点。
-
-**2：添加仲裁节点**
-
-把25节点删除，重启。再添加让其为仲裁节点：
-
-```
-rs.addArb("192.168.200.25:27017")
+```shell
+# 禁止从节点升职为主节点
+cfg = rs.conf()
+cfg.members[1].priority = 0
+rs.reconfig(cfg)
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+### 配置一个隐藏节点
 
-```
-mmm:PRIMARY> rs.status()
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-18T08:14:36Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 795,
-            "optime" : Timestamp(1392711068, 100),
-            "optimeDate" : ISODate("2014-02-18T08:11:08Z"),
-            "lastHeartbeat" : ISODate("2014-02-18T08:14:35Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T08:14:35Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.245:27017"
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" : "PRIMARY",
-            "uptime" : 14703,
-            "optime" : Timestamp(1392711068, 100),
-            "optimeDate" : ISODate("2014-02-18T08:11:08Z"),
-            "self" : true
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 7,
-            "stateStr" : "ARBITER",
-            "uptime" : 26,
-            "lastHeartbeat" : ISODate("2014-02-18T08:14:34Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-18T08:14:34Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        }
-    ],
-    "ok" : 1
-}
-mmm:PRIMARY> rs.conf()
-{
-    "_id" : "mmm",
-    "version" : 9,
-    "members" : [
-        {
-            "_id" : 1,
-            "host" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 2,
-            "host" : "192.168.200.245:27017",
-            "priority" : 2
-        },
-        {
-            "_id" : 3,
-            "host" : "192.168.200.25:27017",
-            "arbiterOnly" : true
-        }
-    ]
-}
+```shell
+# 配置一个隐藏节点
+cfg = rs.conf()
+cfg.members[0].priority = 0
+cfg.members[0].hidden = true
+rs.reconfig(cfg)
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+### 配置一个延时复制节点
 
-上面说明已经让25服务器成为仲裁节点。副本集要求参与选举投票(vote)的节点数为奇数，当我们实际环境中因为机器等原因限制只有两个(或偶数)的节点，这时为了实现 Automatic Failover引入另一类节点：仲裁者（arbiter），仲裁者只参与投票不拥有实际的数据，并且不提供任何服务，因此它对物理资源要求不严格。
-
-通过实际测试发现，当整个副本集集群中达到50%的节点（包括仲裁节点）不可用的时候，剩下的节点只能成为secondary节点，整个集群只能读不能 写。比如集群中有1个primary节点，2个secondary节点，加1个arbit节点时：当两个secondary节点挂掉了，那么剩下的原来的 primary节点也只能降级为secondary节点；当集群中有1个primary节点，1个secondary节点和1个arbit节点，这时即使 primary节点挂了，剩下的secondary节点也会自动成为primary节点。因为仲裁节点不复制数据，因此利用仲裁节点可以实现最少的机器开 销达到两个节点热备的效果。
-
-**3：添加备份节点**
-
-hidden（成员用于支持专用功能）：这样设置后此机器在读写中都不可见，并且不会被选举为Primary，但是可以投票，一般用于备份数据。
-
-把25节点删除，重启。再添加让其为hidden节点：
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-mmm:PRIMARY> rs.add({"_id":3,"host":"192.168.200.25:27017","priority":0,"hidden":true})
-{ "down" : [ "192.168.200.25:27017" ], "ok" : 1 }
-mmm:PRIMARY> rs.conf()
-{
-    "_id" : "mmm",
-    "version" : 17,
-    "members" : [
-        {
-            "_id" : 1,
-            "host" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 2,
-            "host" : "192.168.200.245:27017"
-        },
-        {
-            "_id" : 3,
-            "host" : "192.168.200.25:27017",
-            "priority" : 0,
-            "hidden" : true
-        }
-    ]
-}
+```shell
+# 配置一个延时复制节点
+cfg = rs.conf()
+cfg.members[0].priority = 0
+cfg.members[0].hidden = true
+cfg.members[0].slaveDelay = 3600
+rs.reconfig(cfg)
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+### 配置一个不参与投票的节点
 
-测试其能否参与投票：关闭当前的Primary，查看是否自动转移Primary
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-关闭Primary（252）：
-mmm:PRIMARY> use admin
-switched to db admin
-mmm:PRIMARY> db.shutdownServer()
-
-连另一个链接察看：
-mmm:PRIMARY> rs.status()
-{
-    "set" : "mmm",
-    "date" : ISODate("2014-02-19T09:11:45Z"),
-    "myState" : 1,
-    "members" : [
-        {
-            "_id" : 1,
-            "name" : "192.168.200.252:27017",
-            "health" : 1,
-            "state" : 1,
-            "stateStr" :"(not reachable/healthy)",
-            "uptime" : 4817,
-            "optime" : Timestamp(1392801006, 1),
-            "optimeDate" : ISODate("2014-02-19T09:10:06Z"),
-            "self" : true
-        },
-        {
-            "_id" : 2,
-            "name" : "192.168.200.245:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "PRIMARY",
-            "uptime" : 401,
-            "optime" : Timestamp(1392801006, 1),
-            "optimeDate" : ISODate("2014-02-19T09:10:06Z"),
-            "lastHeartbeat" : ISODate("2014-02-19T09:11:44Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-19T09:11:43Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 3,
-            "name" : "192.168.200.25:27017",
-            "health" : 1,
-            "state" : 2,
-            "stateStr" : "SECONDARY",
-            "uptime" : 99,
-            "optime" : Timestamp(1392801006, 1),
-            "optimeDate" : ISODate("2014-02-19T09:10:06Z"),
-            "lastHeartbeat" : ISODate("2014-02-19T09:11:44Z"),
-            "lastHeartbeatRecv" : ISODate("2014-02-19T09:11:43Z"),
-            "pingMs" : 0,
-            "syncingTo" : "192.168.200.252:27017"
-        }
-    ],
-    "ok" : 1
-}
-上面说明Primary已经转移，说明hidden具有投票的权利，继续查看是否有数据复制的功能。
-#####
-mmm:PRIMARY> db.test.count()
-20210
-mmm:PRIMARY> for(var i=0;i<90;i++){db.test.insert({"name":"test"+i,"age":123})}
-mmm:PRIMARY> db.test.count()
-20300
-
-Secondady:
-mmm:SECONDARY> db.test.count()
-Wed Feb 19 17:18:19.469 count failed: { "note" : "from execCommand", "ok" : 0, "errmsg" : "not master" } at src/mongo/shell/query.js:180
-mmm:SECONDARY> rs.slaveOk()
-mmm:SECONDARY> db.test.count()
-20300
-上面说明hidden具有数据复制的功能
+```shell
+# 配置一个不参与投票的节点
+cfg = rs.conf()
+cfg.members[3].votes = 0
+rs.reconfig(cfg)
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+### 将从节点转换为投票节点
 
-后面大家可以在上面进行备份了，后一篇会介绍如何备份、还原以及一些日常维护需要的操作。
+```shell
+# 将从节点转换为投票节点
+## way1 我们可以将投票节点的端口设置的与之前的从节点一致。那么我们就必须关闭从节点并移除其数据文件，再重启与重新将其配置为投票节点。
+rs.remove("<hostname><:port>")
+rs.conf()
+mv /data/db /data/db-old
+mkdir /data/db
+mongod --port 27021 --dbpath /data/db --replSet rs
+rs.addArb("<hostname><:port>")
+rs.conf()
+投票节点必须要包含如下信息：
 
-**4：添加延迟节点**
-
-Delayed（成员用于支持专用功能）：可以指定一个时间延迟从primary节点同步数据。主要用于处理误删除数据马上同步到从节点导致的不一致问题。
-
-把25节点删除，重启。再添加让其为Delayed节点：
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-mmm:PRIMARY> rs.add({"_id":3,"host":"192.168.200.25:27017","priority":0,"hidden":true,"slaveDelay":60})  #语法
-{ "down" : [ "192.168.200.25:27017" ], "ok" : 1 }
-
-mmm:PRIMARY> rs.conf()
-{
-    "_id" : "mmm",
-    "version" : 19,
-    "members" : [
-        {
-            "_id" : 1,
-            "host" : "192.168.200.252:27017"
-        },
-        {
-            "_id" : 2,
-            "host" : "192.168.200.245:27017"
-        },
-        {
-            "_id" : 3,
-            "host" : "192.168.200.25:27017",
-            "priority" : 0,
-            "slaveDelay" : 60,   
-            "hidden" : true
-        }
-    ]
-}
+"arbiterOnly" : true
+## way2 将投票节点以新的端口运行。我们可以在关闭已有的从节点之前就启动并配置一个投票节点。
 ```
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-测试：操作Primary，看数据是否60s后同步到delayed节点。
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-mmm:PRIMARY> db.test.count()
-20300
-mmm:PRIMARY> for(var i=0;i<200;i++){db.test.insert({"name":"test"+i,"age":123})}
-mmm:PRIMARY> db.test.count()
-20500
-
-Delayed：
-mmm:SECONDARY> db.test.count()
-20300
-#60秒之后
-mmm:SECONDARY> db.test.count()
-20500
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-上面说明delayed能够成功的把同步操作延迟60秒执行。除了上面的成员之外，还有：    
-
-**Secondary-Only:**不能成为primary节点，只能作为secondary副本节点，防止一些性能不高的节点成为主节点。
-
-**Non-Voting：**没有选举权的secondary节点，纯粹的备份数据节点。
-
-**具体成员信息如下：**
-
-|                | 成为primary | 对客户端可见 | 参与投票 | 延迟同步 | 复制数据 |
-| -------------- | ----------- | ------------ | -------- | -------- | -------- |
-| Default        | √           | √            | √        | ∕        | √        |
-| Secondary-Only | ∕           | √            | √        | ∕        | √        |
-| Hidden         | ∕           | ∕            | √        | ∕        | √        |
-| Delayed        | ∕           | √            | √        | √        | √        |
-| Arbiters       | ∕           | ∕            | √        | ∕        | ∕        |
-| Non-Voting     | √           | √            | ∕        | ∕        | √        |
-
-**5：读写分离**
+## 读写分离
 
 MongoDB副本集对读写分离的支持是通过Read Preferences特性进行支持的，这个特性非常复杂和灵活。
 
@@ -1098,160 +850,74 @@ MongoDB副本集对读写分离的支持是通过Read Preferences特性进行支
 
 支持**五种的read preference模式**：[官网说明](http://docs.mongodb.org/manual/applications/replication/#replica-set-read-preference)
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+| 复制集读选项模式                                             | 详细说明                                                     |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [`primary`](http://www.mongoing.com/docs/reference/read-preference.html#primary) | 默认模式，所有的读操作都在复制集的 [*主节点*](http://www.mongoing.com/docs/reference/glossary.html#term-primary) 进行的。 |
+| [`primaryPreferred`](http://www.mongoing.com/docs/reference/read-preference.html#primaryPreferred) | 在大多数情况时，读操作在 [*主节点*](http://www.mongoing.com/docs/reference/glossary.html#term-primary) 上进行，但是如果主节点不可用了，读操作就会转移到 [*从节点*](http://www.mongoing.com/docs/reference/glossary.html#term-secondary) 上执行。 |
+| [`secondary`](http://www.mongoing.com/docs/reference/read-preference.html#secondary) | All operations read from the [*secondary*](http://www.mongoing.com/docs/reference/glossary.html#term-secondary) members of the replica set. |
+| [`secondaryPreferred`](http://www.mongoing.com/docs/reference/read-preference.html#secondaryPreferred) | 在大多数情况下，读操作都是在 [*从节点*](http://www.mongoing.com/docs/reference/glossary.html#term-secondary) 上进行的，但是当 [*从节点*](http://www.mongoing.com/docs/reference/glossary.html#term-secondary) 不可用了，读操作会转移到 [*主节点*](http://www.mongoing.com/docs/reference/glossary.html#term-primary) 上进行。 |
+| [`nearest`](http://www.mongoing.com/docs/reference/read-preference.html#nearest) | 读操作会在 [*复制集*](http://www.mongoing.com/docs/reference/glossary.html#term-replica-set) 中网络延时最小的节点上进行，与节点类型无关。 |
 
-```
-primary
-主节点，默认模式，读操作只在主节点，如果主节点不可用，报错或者抛出异常。
-primaryPreferred
-首选主节点，大多情况下读操作在主节点，如果主节点不可用，如故障转移，读操作在从节点。
-secondary
-从节点，读操作只在从节点， 如果从节点不可用，报错或者抛出异常。
-secondaryPreferred
-首选从节点，大多情况下读操作在从节点，特殊情况（如单主节点架构）读操作在主节点。
-nearest
-最邻近节点，读操作在最邻近的成员，可能是主节点或者从节点，关于最邻近的成员请参考
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-注意：2.2版本之前的MongoDB对Read Preference支持的还不完全，如果客户端驱动采用primaryPreferred实际上读取操作都会被路由到secondary节点。
-
-因为读写分离是通过修改程序的driver的，故这里就不做说明，具体的可以参考这篇[文章](http://blog.chinaunix.net/uid-15795819-id-3075952.html)或则可以在google上查阅。
-
-**验证：（Python）**
-
-通过python来验证MongoDB ReplSet的特性。
-
-**1：主节点断开，看是否影响写入**
+### python连接mongo副本集
 
 脚本：
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
 ```
 #coding:utf-8
 import time
-from pymongo import ReplicaSetConnection
-conn = ReplicaSetConnection("192.168.200.201:27017,192.168.200.202:27017,192.168.200.204:27017", replicaSet="drug",read_preference=2, safe=True)
-#打印Primary服务器
-#print conn.primary
-#打印所有服务器
-#print conn.seeds
-#打印Secondary服务器
-#print conn.secondaries
-
-#print conn.read_preference
-#print conn.server_info()
-
-for i in xrange(1000):
-    try:
-        conn.test.tt.insert({"name":"test" + str(i)})
-        time.sleep(1)
-        print conn.primary
-        print conn.secondaries
-    except:
-        pass 
+from pymongo import *
+client = MongoClient('10.200.6.30',replicaset='booboo')
+db = client.db1
+collection = db.t1
+print db
+print collection
+collection.find_one()
+db.client.address
 ```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
 
 脚本执行打印出的内容：
 
-![img](https://images.cnblogs.com/OutliningIndicators/ContractedBlock.gif) View Code
-
-体操作如下：
-
-在执行脚本的时候，模拟Primary宕机，再把其开启。看到其从201（Primary）上迁移到202上，201变成了Secondary。查看插入的数据发现其中间有一段数据丢失了。
-
-```
-{ "name" : "GOODODOO15" }
-{ "name" : "GOODODOO592" }
-{ "name" : "GOODODOO593" }
+```shell
+[root@sh_01 ~]# python m1.py
+Database(MongoClient([u'sh_01:27017', u'sh_02:27017', u'am_01:27017']), u'db1')
+Collection(Database(MongoClient([u'sh_01:27017', u'sh_02:27017', u'am_01:27017']), u'db1'), u't1')
+{u'_id': ObjectId('5b757a58057999e331202554'), u'id': 1.0}
+Collection(Database(MongoClient([u'sh_01:27017', u'sh_02:27017', u'am_01:27017']), u'db1'), u'client.address')
 ```
 
-其实这部分数据是由于在选举过程期间丢失的，要是不允许数据丢失，则把在选举期间的数据放到队列中，等到找到新的Primary，再写入。
+### 模拟主节点故障
 
-上面的脚本可能会出现操作时退出，这要看xrange()里的数量了，所以用一个循环修改（更直观）：
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
 
-```
-#coding:utf-8
-import time
-from pymongo import ReplicaSetConnection
-conn = ReplicaSetConnection("192.168.200.201:27017,192.168.200.202:27017,192.168.200.204:27017", replicaSet="drug",read_preference=2, safe=True)
+## 总结
 
-#打印Primary服务器
-#print conn.primary
-#打印所有服务器
-#print conn.seeds
-#打印Secondary服务器
-#print conn.secondaries
+### 搭建副本集
 
-#print conn.read_preference
-#print conn.server_info()
+| No.  | 步骤           | 操作                   |
+| ---- | -------------- | ---------------------- |
+| 1    | 修改配置文件   | `replSetName: booboo`  |
+| 2    | 启动服务       | `mongodb.server start` |
+| 3    | 初始化副本集   | `rs.initiate()`        |
+| 4    | 确认初始化配置 | `rs.conf()`            |
+| 5    | 添加副本集节点 | `rs.add()`             |
+| 6    | 检查副本集状态 | `rs.status()`          |
 
-while True:
-    try:
-        for i in xrange(100):
-            conn.test.tt.insert({"name":"test" + str(i)})
-            print "test" + str(i)
-            time.sleep(2)
-            print conn.primary
-            print conn.secondaries
-            print '\n'
-    except:
-        pass
-```
+### 副本集的方法
 
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
+| 名称                                                         | 描述                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [`rs.add（）`](http://www.mongoing.com/docs/reference/method/rs.add.html#rs.add) | 将成员添加到副本集。                                         |
+| [`rs.addArb（）`](http://www.mongoing.com/docs/reference/method/rs.addArb.html#rs.addArb) | 将[*仲裁器*](http://www.mongoing.com/docs/reference/glossary.html#term-arbiter)添加到副本集。 |
+| [`rs.conf（）`](http://www.mongoing.com/docs/reference/method/rs.conf.html#rs.conf) | 返回副本集配置文档。                                         |
+| [`rs.freeze（）`](http://www.mongoing.com/docs/reference/method/rs.freeze.html#rs.freeze) | 防止现任成员在一段时间内选举为主要成员。                     |
+| [`rs.help（）`](http://www.mongoing.com/docs/reference/method/rs.help.html#rs.help) | 返回[*副本集*](http://www.mongoing.com/docs/reference/glossary.html#term-replica-set)函数的基本帮助文本。 |
+| [`rs.initiate（）`](http://www.mongoing.com/docs/reference/method/rs.initiate.html#rs.initiate) | 初始化新的副本集。                                           |
+| [`rs.printReplicationInfo（）`](http://www.mongoing.com/docs/reference/method/rs.printReplicationInfo.html#rs.printReplicationInfo) | 从主数据库的角度打印副本集状态的报告。                       |
+| [`rs.printSlaveReplicationInfo（）`](http://www.mongoing.com/docs/reference/method/rs.printSlaveReplicationInfo.html#rs.printSlaveReplicationInfo) | 从辅助节点的角度打印副本集状态的报告。                       |
+| [`rs.reconfig（）`](http://www.mongoing.com/docs/reference/method/rs.reconfig.html#rs.reconfig) | 通过应用新的副本集配置对象重新配置副本集。                   |
+| [`rs.remove（）`](http://www.mongoing.com/docs/reference/method/rs.remove.html#rs.remove) | 从副本集中删除成员。                                         |
+| [`rs.slaveOk（）`](http://www.mongoing.com/docs/reference/method/rs.slaveOk.html#rs.slaveOk) | 设置当前连接的`slaveOk`属性。已过时。使用[`readPref（）`](http://www.mongoing.com/docs/reference/method/cursor.readPref.html#cursor.readPref)和[`Mongo.setReadPref（）`](http://www.mongoing.com/docs/reference/method/Mongo.setReadPref.html#Mongo.setReadPref)来设置[*读取首选项*](http://www.mongoing.com/docs/reference/glossary.html#term-read-preference)。 |
+| [`rs.status（）`](http://www.mongoing.com/docs/reference/method/rs.status.html#rs.status) | 返回包含有关副本集状态的信息的文档。                         |
+| [`rs.stepDown（）`](http://www.mongoing.com/docs/reference/method/rs.stepDown.html#rs.stepDown) | 导致当前的[*初选*](http://www.mongoing.com/docs/reference/glossary.html#term-primary)成为强制[*选举*](http://www.mongoing.com/docs/reference/glossary.html#term-election)的次要。 |
+| [`rs.syncFrom（）`](http://www.mongoing.com/docs/reference/method/rs.syncFrom.html#rs.syncFrom) | 设置此副本集成员将同步的成员，覆盖默认同步目标选择逻辑。     |
 
-**上面的实验证明了：**在Primary宕机的时候，程序脚本仍可以写入，不需要人为的去干预。只是期间需要10s左右（选举时间）的时间会出现不可用，进一步说明，写操作时在Primary上进行的。
-
-**2：主节点断开，看是否影响读取**
-
-脚本：
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-```
-#coding:utf-8
-import time
-from pymongo import ReplicaSetConnection
-conn = ReplicaSetConnection("192.168.200.201:27017,192.168.200.202:27017,192.168.200.204:27017", replicaSet="drug",read_preference=2, safe=True)
-
-#打印Primary服务器
-#print conn.primary
-#打印所有服务器
-#print conn.seeds
-#打印Secondary服务器
-#print conn.secondaries
-
-#print conn.read_preference
-#print conn.server_info()
-
-for i in xrange(1000):
-    
-    time.sleep(1)
-    obj=conn.test.tt.find({},{"_id":0,"name":1}).skip(i).limit(1)
-    for item in obj:
-        print item.values()
-    print conn.primary
-    print conn.secondaries
-
-```
-
-[![复制代码](https://common.cnblogs.com/images/copycode.gif)](javascript:void(0);)
-
-脚本执行打印出的内容：
-
-具体操作如下：
-
-在执行脚本的时候，模拟Primary宕机，再把其开启。看到201（Primary）上迁移到202上，201变成了Secondary，读取数据没有间断。再让Primary宕机，不开启，读取也不受影响。
-
-**上面的实验证明了：**在Primary宕机的时候，程序脚本仍可以读取，不需要人为的去干预。一进步说明，读取是在Secondary上面。
-
-**总结：**
-
-刚接触MongoDB，能想到的就这些，后期发现一些新的知识点会不定时更新该文章。
