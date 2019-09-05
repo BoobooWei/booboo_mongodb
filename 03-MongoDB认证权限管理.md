@@ -61,7 +61,7 @@ vim /alidata/mongodb/conf/mongodb27017.conf
 # http://www.mongoing.com/docs/reference/configuration-options.html#security.authorization
 security:
     authorization=enabled
-bash /alidata/mongodb.server start    
+bash /alidata/mongodb/mongodb.server restart    
 ```
 
 #### 5.连接并认证超级账户
